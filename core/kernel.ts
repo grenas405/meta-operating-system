@@ -6,16 +6,8 @@
 
 import { createServer } from "./server.ts";
 import type { Server } from "./server.ts";
-import type { Context } from "./utils/context.ts";
-import { json, badRequest } from "./utils/response.ts";
+import { registerCoreRoutes } from "./router.ts";
 import { bodyParser } from "./utils/parsers.ts";
-import {
-  validator,
-  requiredString,
-  optionalString,
-  requiredNumber,
-  requiredEmail,
-} from "./utils/validator.ts";
 import {
   createPerformanceMiddleware,
   PerformanceMonitor,
@@ -90,145 +82,14 @@ class Kernel {
     this.httpServer.use(requestId());
     this.httpServer.use(bodyParser()); // Parse request bodies
 
-    // Register routes
-    this.registerRoutes();
-  }
-
-  /**
-   * Register HTTP routes
-   */
-  private registerRoutes(): void {
-    // Root endpoint
-    this.httpServer.get("/", () => {
-      return json({
-        message: "Deno-Genesis Kernel",
-        version: this.systemInfo.version,
-        uptime: this.getUptime(),
-      });
-    });
-
-    // Health check endpoint
-    this.httpServer.get("/health", () => {
-      return json({
-        status: "healthy",
-        uptime: this.getUptime(),
-        timestamp: Date.now(),
-      });
-    });
-
-    // System info endpoint
-    this.httpServer.get("/info", () => {
-      return json({
-        ...this.systemInfo,
-        uptime: this.getUptime(),
-        memory: Deno.memoryUsage(),
-        config: {
-          port: this.config.port,
-          hostname: this.config.hostname,
-        },
-      });
-    });
-
-    // Performance metrics endpoint
-    this.httpServer.get("/metrics", () => {
-      return json(this.performanceMonitor.getMetrics());
-    });
-
-    // Detailed performance metrics endpoint
-    this.httpServer.get("/metrics/detailed", () => {
-      return json(this.performanceMonitor.getDetailedMetrics());
-    });
-
-    // Performance insights endpoint
-    this.httpServer.get("/metrics/insights", () => {
-      return json(this.performanceMonitor.getPerformanceInsights());
-    });
-
-    // Example: Echo endpoint - demonstrates basic JSON body parsing
-    this.httpServer.post("/echo", (ctx: Context) => {
-      const body = ctx.state.body;
-
-      if (!body) {
-        return badRequest("No body provided");
-      }
-
-      return json({
-        message: "Echo response",
-        received: body,
-        timestamp: Date.now(),
-      });
-    });
-
-    // Example: User creation with validation
-    this.httpServer.post(
-      "/users",
-      validator({
-        name: requiredString({ minLength: 2, maxLength: 50 }),
-        email: requiredEmail(),
-        age: requiredNumber({ min: 18, max: 120, integer: true }),
-        bio: optionalString({ maxLength: 500 }),
-      }),
-      (ctx: Context) => {
-        const user = ctx.state.body as Record<string, unknown>;
-
-        // In a real app, you'd save to a database here
-        const createdUser = {
-          id: crypto.randomUUID(),
-          ...user,
-          createdAt: new Date().toISOString(),
-        };
-
-        ConsoleStyler.logSuccess("User created", createdUser);
-
-        return json(createdUser, { status: 201 });
+    registerCoreRoutes(this.httpServer.getRouter(), {
+      systemInfo: this.systemInfo,
+      getUptime: this.getUptime.bind(this),
+      performanceMonitor: this.performanceMonitor,
+      config: {
+        port: this.config.port,
+        hostname: this.config.hostname,
       },
-    );
-
-    // Example: Form data endpoint
-    this.httpServer.post("/contact", (ctx: Context) => {
-      const body = ctx.state.body as Record<string, unknown>;
-
-      if (!body) {
-        return badRequest("No form data provided");
-      }
-
-      // Process contact form submission
-      ConsoleStyler.logInfo("Contact form submitted", body);
-
-      return json({
-        message: "Contact form received",
-        data: body,
-      });
-    });
-
-    // Example: File upload endpoint
-    this.httpServer.post("/upload", (ctx: Context) => {
-      const files = ctx.state.files as Array<{
-        name: string;
-        filename: string;
-        type: string;
-        size: number;
-        data: Uint8Array;
-      }>;
-
-      if (!files || files.length === 0) {
-        return badRequest("No files uploaded");
-      }
-
-      // Process uploaded files
-      const fileInfo = files.map((file) => ({
-        fieldName: file.name,
-        filename: file.filename,
-        mimeType: file.type,
-        size: file.size,
-      }));
-
-      ConsoleStyler.logSuccess(`Received ${files.length} file(s)`, fileInfo);
-
-      return json({
-        message: "Files uploaded successfully",
-        files: fileInfo,
-      });
     });
   }
 
