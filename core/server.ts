@@ -164,6 +164,8 @@ class HTTPServer {
                 protocol: "http",
               },
             );
+            // Signal to kernel that server is ready
+            console.log("SERVER_READY");
           },
         },
         async (request) => {

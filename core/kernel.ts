@@ -31,6 +31,8 @@ interface ManagedProcess {
   restartCount: number;
   autoRestart: boolean;
   status: "starting" | "running" | "stopped" | "failed";
+  readyResolver?: () => void;
+  readyPromise?: Promise<void>;
 }
 
 class Kernel {
@@ -220,6 +222,10 @@ class Kernel {
       if (!process.child?.stdout) return;
       for await (const chunk of process.child.stdout) {
         const text = decoder.decode(chunk);
+        // Check for ready signal
+        if (text.includes("SERVER_READY") && process.readyResolver) {
+          process.readyResolver();
+        }
         // Always display process output
         ConsoleStyler.logInfo(`[${process.name}] ${text.trim()}`);
       }
@@ -518,7 +524,14 @@ class Kernel {
 
     // Start the HTTP server process
     const serverScriptPath = new URL("./server.ts", import.meta.url).pathname;
-    await this.spawnProcess(
+
+    // Create a ready promise for the HTTP server
+    let serverReadyResolver: () => void;
+    const serverReadyPromise = new Promise<void>((resolve) => {
+      serverReadyResolver = resolve;
+    });
+
+    const httpProcess = await this.spawnProcess(
       "http-server",
       "HTTP Server",
       serverScriptPath,
@@ -533,6 +546,15 @@ class Kernel {
         port: this.config.serverPort,
       },
     );
+
+    // Attach the ready promise to the process
+    httpProcess.readyPromise = serverReadyPromise;
+    httpProcess.readyResolver = serverReadyResolver!;
+
+    // Wait for HTTP server to be ready
+    this.log("Waiting for HTTP server to be ready...");
+    await serverReadyPromise;
+    this.logSuccess("HTTP server is ready");
 
     this.logSuccess("Kernel boot complete");
 
