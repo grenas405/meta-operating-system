@@ -69,6 +69,34 @@ class Kernel {
   }
 
   /**
+   * Check if a port is already in use
+   */
+  private async isPortInUse(port: number): Promise<number | null> {
+    try {
+      const command = new Deno.Command("bash", {
+        args: ["-c", `lsof -ti:${port} -sTCP:LISTEN 2>/dev/null || netstat -tlnp 2>/dev/null | grep :${port} | awk '{print $7}' | cut -d'/' -f1 | head -1`],
+        stdout: "piped",
+        stderr: "piped",
+      });
+
+      const { stdout } = await command.output();
+      const decoder = new TextDecoder();
+      const output = decoder.decode(stdout).trim();
+
+      if (output) {
+        const pid = parseInt(output.split('\n')[0]);
+        if (!isNaN(pid) && pid > 0) {
+          return pid;
+        }
+      }
+      return null;
+    } catch (error) {
+      this.log(`Error checking port ${port}: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
+    }
+  }
+
+  /**
    * Spawn a new Deno process
    */
   async spawnProcess(
@@ -80,10 +108,49 @@ class Kernel {
       env?: Record<string, string>;
       autoRestart?: boolean;
       cwd?: string;
+      port?: number;
     } = {},
   ): Promise<ManagedProcess> {
     if (this.processes.has(id)) {
       throw new Error(`Process with id '${id}' already exists`);
+    }
+
+    // Check if port is already in use (if port is specified)
+    if (options.port) {
+      const existingPid = await this.isPortInUse(options.port);
+      if (existingPid) {
+        this.log(`Port ${options.port} is already in use by PID ${existingPid}`);
+        this.log(`Monitoring existing process instead of spawning new one`);
+
+        // Create a managed process entry for the existing process
+        const managedProcess: ManagedProcess = {
+          id,
+          name,
+          command: new Deno.Command(Deno.execPath(), {
+            args: ["run", "--allow-all", scriptPath, ...args],
+            env: {
+              ...Deno.env.toObject(),
+              ...options.env,
+            },
+            cwd: options.cwd,
+            stdout: "piped",
+            stderr: "piped",
+          }),
+          pid: existingPid,
+          startTime: Date.now(),
+          restartCount: 0,
+          autoRestart: options.autoRestart ?? false,
+          status: "running",
+        };
+
+        this.processes.set(id, managedProcess);
+        this.logSuccess(`Monitoring existing process: ${name} (PID: ${existingPid})`, { id, pid: existingPid });
+
+        // Monitor the existing process
+        this.monitorExistingProcess(managedProcess);
+
+        return managedProcess;
+      }
     }
 
     this.log(`Spawning process: ${name} (${id})`, { scriptPath, args });
@@ -157,14 +224,118 @@ class Kernel {
       }
     })();
 
-    // Monitor stderr
+    // Monitor stderr and detect address already in use
     (async () => {
       if (!process.child?.stderr) return;
       for await (const chunk of process.child.stderr) {
         const text = decoder.decode(chunk);
         ConsoleStyler.logError(`[${process.name}] ${text.trim()}`);
+
+        // Check for address already in use error
+        if (text.includes("AddrInUse") || text.includes("address already in use")) {
+          this.logError(`Address already in use for ${process.name}, attempting to monitor existing process`);
+          process.status = "failed";
+          await this.handleAddressInUse(process);
+        }
       }
     })();
+  }
+
+  /**
+   * Handle address already in use by finding and monitoring existing process
+   */
+  private async handleAddressInUse(process: ManagedProcess): Promise<void> {
+    const port = this.config.serverPort;
+    this.log(`Searching for existing Deno process on port ${port}...`);
+
+    try {
+      // Find the process using the port
+      const command = new Deno.Command("bash", {
+        args: ["-c", `lsof -ti:${port} -sTCP:LISTEN || netstat -tlnp 2>/dev/null | grep :${port} | awk '{print $7}' | cut -d'/' -f1`],
+        stdout: "piped",
+        stderr: "piped",
+      });
+
+      const { stdout } = await command.output();
+      const decoder = new TextDecoder();
+      const output = decoder.decode(stdout).trim();
+
+      if (output) {
+        const pid = parseInt(output.split('\n')[0]);
+        if (!isNaN(pid)) {
+          this.logSuccess(`Found existing process with PID ${pid} on port ${port}`);
+
+          // Update process info to monitor the existing process
+          process.pid = pid;
+          process.status = "running";
+          process.child = undefined; // We don't control this process
+          process.autoRestart = false; // Disable auto-restart to prevent address conflicts
+
+          // Monitor the existing process
+          await this.monitorExistingProcess(process);
+          return;
+        }
+      }
+
+      this.logError(`Could not find process using port ${port}`);
+    } catch (error) {
+      this.logError(`Error finding existing process: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Monitor an existing process that we don't control
+   */
+  private async monitorExistingProcess(process: ManagedProcess): Promise<void> {
+    if (!process.pid) return;
+
+    this.log(`Monitoring existing process: ${process.name} (PID: ${process.pid})`);
+
+    // Poll the process to check if it's still alive
+    const checkInterval = 5000; // Check every 5 seconds
+
+    const intervalId = setInterval(async () => {
+      if (!process.pid || this.shutdownInProgress) {
+        clearInterval(intervalId);
+        return;
+      }
+
+      try {
+        // Check if process is still running by checking if we can read /proc/{pid}
+        const procPath = `/proc/${process.pid}`;
+        await Deno.stat(procPath);
+        // Process still exists
+      } catch (error) {
+        // Process no longer exists
+        this.logError(`Monitored process ${process.name} (PID: ${process.pid}) has exited`);
+        process.status = "stopped";
+        clearInterval(intervalId);
+
+        // Auto-restart if enabled
+        if (process.autoRestart && !this.shutdownInProgress) {
+          this.log(`Restarting ${process.name} after monitored process exit...`);
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+
+          // Spawn a new process
+          try {
+            const child = process.command.spawn();
+            process.child = child;
+            process.pid = child.pid;
+            process.status = "running";
+            process.startTime = Date.now();
+            process.restartCount++;
+
+            this.logSuccess(`Process restarted: ${process.name} (PID: ${child.pid})`);
+            this.monitorProcess(process);
+            this.watchProcessExit(process);
+          } catch (restartError) {
+            this.logError(`Failed to restart process: ${process.name}`, {
+              error: restartError instanceof Error ? restartError.message : String(restartError),
+            });
+          }
+        }
+      }
+    }, checkInterval);
   }
 
   /**
@@ -358,6 +529,7 @@ class Kernel {
           DEBUG: String(this.config.debug),
         },
         autoRestart: true,
+        port: this.config.serverPort,
       },
     );
 
