@@ -4,8 +4,8 @@
  * Uses only Deno built-in APIs
  */
 
-import type { Middleware, Context } from "./context.ts";
-import { ConsoleStyler } from "../utils/console-styler/ConsoleStyler.ts";
+import type { Context, Middleware } from "./context.ts";
+import { ConsoleStyler } from "../utils/console-styler/mod.ts";
 
 /**
  * Validation error with field-specific details
@@ -30,7 +30,12 @@ export type ValidationRule =
   | { type: "string"; minLength?: number; maxLength?: number; pattern?: RegExp }
   | { type: "number"; min?: number; max?: number; integer?: boolean }
   | { type: "boolean" }
-  | { type: "array"; items?: ValidationSchema; minItems?: number; maxItems?: number }
+  | {
+    type: "array";
+    items?: ValidationSchema;
+    minItems?: number;
+    maxItems?: number;
+  }
   | { type: "object"; properties?: Record<string, ValidationSchema> }
   | { type: "email" }
   | { type: "url" }
@@ -413,7 +418,12 @@ export function requiredString(
  * Helper to create an optional string field
  */
 export function optionalString(
-  options: { minLength?: number; maxLength?: number; pattern?: RegExp; default?: string } = {},
+  options: {
+    minLength?: number;
+    maxLength?: number;
+    pattern?: RegExp;
+    default?: string;
+  } = {},
 ): ValidationSchema {
   const { default: defaultValue, ...ruleOptions } = options;
   return {
@@ -441,7 +451,8 @@ export function requiredNumber(
  * Helper to create an optional number field
  */
 export function optionalNumber(
-  options: { min?: number; max?: number; integer?: boolean; default?: number } = {},
+  options: { min?: number; max?: number; integer?: boolean; default?: number } =
+    {},
 ): ValidationSchema {
   const { default: defaultValue, ...ruleOptions } = options;
   return {
@@ -514,7 +525,8 @@ export function requiredEnum(values: unknown[]): ValidationSchema {
  * Helper to create a required array field
  */
 export function requiredArray(
-  options: { items?: ValidationSchema; minItems?: number; maxItems?: number } = {},
+  options: { items?: ValidationSchema; minItems?: number; maxItems?: number } =
+    {},
 ): ValidationSchema {
   return {
     rules: [

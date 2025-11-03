@@ -11,7 +11,7 @@ import {
   PerformanceMonitor,
 } from "./middleware/performanceMonitor.ts";
 import { errorHandler, logger, requestId, timing } from "./middleware/index.ts";
-import { ConsoleStyler } from "./utils/console-styler/ConsoleStyler.ts";
+import { ConsoleStyler } from "./utils/console-styler/mod.ts";
 
 interface ServerConfig {
   port: number;

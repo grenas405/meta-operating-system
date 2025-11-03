@@ -9,7 +9,7 @@ import type { PerformanceMonitor } from "./middleware/performanceMonitor.ts";
 import type { Context, Middleware } from "./utils/context.ts";
 import { createContext } from "./utils/context.ts";
 import { badRequest, json, notFound } from "./utils/response.ts";
-import { ConsoleStyler } from "./utils/console-styler/ConsoleStyler.ts";
+import { ConsoleStyler } from "./utils/console-styler/mod.ts";
 import {
   optionalString,
   requiredEmail,

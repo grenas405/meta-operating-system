@@ -5,7 +5,7 @@
  */
 
 import type { Context, Middleware } from "./context.ts";
-import { ConsoleStyler } from "../utils/console-styler/ConsoleStyler.ts";
+import { ConsoleStyler } from "../utils/console-styler/mod.ts";
 
 /**
  * JSON body parser middleware
@@ -250,7 +250,8 @@ export function multipart(options: {
               return new Response(
                 JSON.stringify({
                   error: "Payload Too Large",
-                  message: `File "${value.name}" exceeds maximum size of ${maxFileSize} bytes`,
+                  message:
+                    `File "${value.name}" exceeds maximum size of ${maxFileSize} bytes`,
                 }),
                 {
                   status: 413,

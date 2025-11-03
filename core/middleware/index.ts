@@ -1,15 +1,15 @@
-import { ConsoleStyler } from "../utils/console-styler/ConsoleStyler.ts";
+import { ConsoleStyler } from "../utils/console-styler/mod.ts";
 import { finalizeResponse } from "../utils/context.ts";
 import type { Context, Handler, Middleware } from "../utils/context.ts";
 import {
   createErrorMiddleware,
-  ErrorHandlerPresets,
   type ErrorConfig,
+  ErrorHandlerPresets,
 } from "./errorHandlerMiddleware.ts";
 import {
   createHealthCheckMiddleware,
-  HealthCheckPresets,
   type HealthCheckConfig,
+  HealthCheckPresets,
 } from "./healthCheckMiddlware.ts";
 import {
   createLoggingMiddleware,
@@ -18,8 +18,8 @@ import {
 } from "./loggingMiddleware.ts";
 import {
   createSecurityMiddleware,
-  SecurityPresets,
   type SecurityConfig,
+  SecurityPresets,
 } from "./securityMiddleware.ts";
 import { PerformanceMonitor } from "./performanceMonitor.ts";
 
@@ -129,7 +129,8 @@ export function cors(options: {
  */
 export function errorHandler(config?: ErrorConfig): Middleware {
   // Auto-detect environment if not provided
-  const environment = Deno.env.get("DENO_ENV") || Deno.env.get("ENV") || "development";
+  const environment = Deno.env.get("DENO_ENV") || Deno.env.get("ENV") ||
+    "development";
 
   // Use preset based on environment
   const defaultConfig = environment === "production"
@@ -192,7 +193,8 @@ export function healthCheck(
   performanceMonitor?: PerformanceMonitor,
   config?: HealthCheckConfig,
 ): Middleware {
-  const environment = Deno.env.get("DENO_ENV") || Deno.env.get("ENV") || "development";
+  const environment = Deno.env.get("DENO_ENV") || Deno.env.get("ENV") ||
+    "development";
 
   const defaultConfig: HealthCheckConfig = environment === "production"
     ? HealthCheckPresets.PRODUCTION
@@ -200,7 +202,10 @@ export function healthCheck(
 
   const finalConfig = { ...defaultConfig, ...config };
 
-  const healthMiddleware = createHealthCheckMiddleware(performanceMonitor, finalConfig);
+  const healthMiddleware = createHealthCheckMiddleware(
+    performanceMonitor,
+    finalConfig,
+  );
 
   return (ctx, next) => healthMiddleware(ctx, next);
 }
@@ -211,7 +216,8 @@ export function healthCheck(
  * @param config - Optional logging configuration
  */
 export function logging(config?: LoggingConfig): Middleware {
-  const environment = Deno.env.get("DENO_ENV") || Deno.env.get("ENV") || "development";
+  const environment = Deno.env.get("DENO_ENV") || Deno.env.get("ENV") ||
+    "development";
 
   const defaultConfig: LoggingConfig = {
     environment,
@@ -233,7 +239,8 @@ export function logging(config?: LoggingConfig): Middleware {
  * @param config - Optional security configuration
  */
 export function security(config?: SecurityConfig): Middleware {
-  const environment = Deno.env.get("DENO_ENV") || Deno.env.get("ENV") || "development";
+  const environment = Deno.env.get("DENO_ENV") || Deno.env.get("ENV") ||
+    "development";
 
   const defaultConfig: SecurityConfig = environment === "production"
     ? { environment, ...SecurityPresets.BALANCED }

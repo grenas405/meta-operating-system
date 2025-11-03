@@ -3,7 +3,7 @@
  * Interactive command-line interface for kernel management
  */
 
-import { ConsoleStyler } from "./console-styler/ConsoleStyler.ts";
+import { ConsoleStyler } from "./console-styler/mod.ts";
 import type { Kernel } from "../kernel.ts";
 
 interface ReplCommand {
