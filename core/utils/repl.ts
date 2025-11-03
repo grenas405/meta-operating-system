@@ -179,8 +179,10 @@ export class MetaRepl {
       description: "Exit the REPL (kernel continues running)",
       aliases: ["quit", "q"],
       handler: () => {
+        const kernelPid = this.kernel.getSystemInfo().pid;
         ConsoleStyler.logWarning("Exiting REPL... (Kernel continues running)");
-        ConsoleStyler.logInfo("To stop the kernel, use CTRL+C");
+        ConsoleStyler.logInfo(`To re-enter: Send signal to PID ${kernelPid}`);
+        ConsoleStyler.logInfo("To stop kernel: Press CTRL+C");
         this.running = false;
       },
     });

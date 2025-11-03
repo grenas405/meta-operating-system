@@ -68,6 +68,9 @@ class Kernel {
     Deno.addSignalListener("SIGINT", () => this.shutdown("SIGINT"));
     Deno.addSignalListener("SIGTERM", () => this.shutdown("SIGTERM"));
 
+    // Register SIGUSR1 handler to re-enter REPL
+    Deno.addSignalListener("SIGUSR1", () => this.reenterRepl());
+
     this.logSuccess("Kernel initialization complete");
   }
 
@@ -560,6 +563,9 @@ class Kernel {
 
     // Start the REPL shell
     await this.startRepl();
+
+    // Keep kernel running after REPL exits
+    await new Promise(() => {}); // Run forever until signal
   }
 
   /**
@@ -571,7 +577,21 @@ class Kernel {
 
     // After REPL exits, keep kernel running
     this.log("REPL exited, kernel continues running in background");
-    await new Promise(() => {}); // Run forever until signal
+    this.log(`To re-enter the REPL, send SIGUSR1: kill -SIGUSR1 ${this.systemInfo.pid}`);
+  }
+
+  /**
+   * Re-enter the REPL shell
+   */
+  private reenterRepl(): void {
+    this.log("Re-entering REPL shell...");
+    // Start REPL in a new async context
+    (async () => {
+      const repl = new MetaRepl(this);
+      await repl.start();
+      this.log("REPL exited again, kernel continues running in background");
+      this.log(`To re-enter the REPL, send SIGUSR1: kill -SIGUSR1 ${this.systemInfo.pid}`);
+    })();
   }
 
   /**
