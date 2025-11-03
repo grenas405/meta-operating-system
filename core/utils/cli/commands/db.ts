@@ -150,10 +150,11 @@ ${Colors.CYAN}📖 Docs: See docs/06-backend/database-patterns.md${Colors.RESET}
 
     return 0;
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(
-      `${Colors.RED}❌ Database setup failed: ${error.message}${Colors.RESET}`,
+      `${Colors.RED}❌ Database setup failed: ${errorMessage}${Colors.RESET}`,
     );
-    if (context.verbose) {
+    if (context.verbose && error instanceof Error) {
       console.error(error.stack);
     }
     return 1;
@@ -389,8 +390,9 @@ async function checkMariaDBStatus(context: CLIContext): Promise<void> {
     }
   } catch (error) {
     if (context.verbose) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.log(
-        `${Colors.YELLOW}Note: Could not check MariaDB status: ${error.message}${Colors.RESET}`,
+        `${Colors.YELLOW}Note: Could not check MariaDB status: ${errorMessage}${Colors.RESET}`,
       );
     }
   }
@@ -432,7 +434,8 @@ async function testRootAccess(context: CLIContext): Promise<boolean> {
     return false;
   } catch (error) {
     if (context.verbose) {
-      console.error(`Root access test error: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`Root access test error: ${errorMessage}`);
     }
     return false;
   }
@@ -643,7 +646,8 @@ async function testDatabaseConnection(
     }
   } catch (error) {
     if (context.verbose) {
-      console.error(`Connection test error: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`Connection test error: ${errorMessage}`);
     }
     return false;
   }

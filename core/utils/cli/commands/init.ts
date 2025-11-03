@@ -126,8 +126,9 @@ Next Steps:
 
     return 0;
   } catch (error) {
-    console.error(`❌ Init command failed: ${error.message}`);
-    if (context.verbose) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`❌ Init command failed: ${errorMessage}`);
+    if (context.verbose && error instanceof Error) {
       console.error(error.stack);
     }
     return 1;
@@ -248,7 +249,7 @@ async function promptForPort(): Promise<number> {
 async function validateSiteConfig(
   config: SiteConfig,
   context: CLIContext,
-): { valid: boolean; error?: string } {
+): Promise<{ valid: boolean; error?: string }> {
   const homeDir = Deno.env.get("HOME") ?? Deno.env.get("USERPROFILE") ?? ".";
 
   // Check if sites directory exists or can be created
@@ -379,8 +380,9 @@ async function createCoreSymlinks(
         console.log(`  ✅ ${target} → ${relativePath}`);
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.warn(
-        `  ⚠️  Failed to create symlink for ${target}: ${error.message}`,
+        `  ⚠️  Failed to create symlink for ${target}: ${errorMessage}`,
       );
     }
   }

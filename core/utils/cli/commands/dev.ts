@@ -238,7 +238,8 @@ async function detectSiteConfig(
 
     return null;
   } catch (error) {
-    logError(`Failed to detect site configuration: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logError(`Failed to detect site configuration: ${errorMessage}`);
     return null;
   }
 }
@@ -359,7 +360,8 @@ async function startDevServer(
       logError(`Server exited with code ${status.code}`);
     }
   } catch (error) {
-    logError(`Failed to start server: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logError(`Failed to start server: ${errorMessage}`);
   } finally {
     isRestarting = false;
   }
@@ -502,7 +504,8 @@ async function openBrowser(url: string): Promise<void> {
     await process.status;
     logSuccess(`Opened browser at ${url}`);
   } catch (error) {
-    logWarning(`Failed to open browser: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logWarning(`Failed to open browser: ${errorMessage}`);
   }
 }
 
@@ -562,8 +565,9 @@ export async function devCommand(
 
     return 0;
   } catch (error) {
-    logError(`Dev command failed: ${error.message}`);
-    if (context.verbose) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logError(`Dev command failed: ${errorMessage}`);
+    if (context.verbose && error instanceof Error) {
       console.error(error.stack);
     }
     return 1;

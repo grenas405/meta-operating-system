@@ -503,8 +503,9 @@ Next Steps:
 
     return 0;
   } catch (error) {
-    console.error(`❌ Error generating frontend:`, error.message);
-    if (context.verbose) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`❌ Error generating frontend:`, errorMessage);
+    if (context.verbose && error instanceof Error) {
       console.error(error.stack);
     }
     return 1;
