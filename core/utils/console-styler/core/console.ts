@@ -27,7 +27,7 @@ import {
   supports256Color,
   supportsColor,
   supportsTrueColor,
-} from "./lib/colors.ts";
+} from "./colors.ts";
 
 // ================================================================================
 // TYPE DEFINITIONS
@@ -58,13 +58,7 @@ export interface LogEntry {
   requestId?: string;
 }
 
-export type LogLevel =
-  | "debug"
-  | "info"
-  | "success"
-  | "warning"
-  | "error"
-  | "critical";
+export type LogLevel = "debug" | "info" | "success" | "warning" | "error" | "critical";
 
 export interface PerformanceMetrics {
   uptime: string;
@@ -148,11 +142,7 @@ export class ConsoleStyler {
    * Log with custom brand color (hex)
    * @example ConsoleStyler.logBrand("Welcome!", "#FF6B35", { user: "Alice" })
    */
-  static logBrand(
-    message: string,
-    brandHex: string,
-    metadata?: Record<string, any>,
-  ): void {
+  static logBrand(message: string, brandHex: string, metadata?: Record<string, any>): void {
     const color = hexToRgb(brandHex);
     console.log(`${color}🎨 ${message}${colors.reset}`);
     if (metadata && Object.keys(metadata).length > 0) {
@@ -269,19 +259,11 @@ export class ConsoleStyler {
       } Support Level: ${colors.bright}${support.toUpperCase()}${colors.reset}`,
     );
     console.log(
-      `   ${colors.dim}Basic Colors (16): ${
-        supportsColor() ? "✅" : "❌"
-      }${colors.reset}`,
+      `   ${colors.dim}Basic Colors (16): ${supportsColor() ? "✅" : "❌"}${colors.reset}`,
     );
+    console.log(`   ${colors.dim}256 Colors: ${supports256Color() ? "✅" : "❌"}${colors.reset}`);
     console.log(
-      `   ${colors.dim}256 Colors: ${
-        supports256Color() ? "✅" : "❌"
-      }${colors.reset}`,
-    );
-    console.log(
-      `   ${colors.dim}True Color (16.7M): ${
-        supportsTrueColor() ? "✅" : "❌"
-      }${colors.reset}`,
+      `   ${colors.dim}True Color (16.7M): ${supportsTrueColor() ? "✅" : "❌"}${colors.reset}`,
     );
     console.log("");
   }
@@ -296,9 +278,7 @@ export class ConsoleStyler {
   static logSuccess(message: string, metadata?: Record<string, any>): void {
     // Use enhanced 256-color green for better visibility
     const icon = "✅";
-    const color = this.supports256Color()
-      ? colors256.brightGreen
-      : colors.success;
+    const color = this.supports256Color() ? colors256.brightGreen : colors.success;
     this._logEnhanced("success", message, icon, color, metadata);
   }
 
@@ -307,9 +287,7 @@ export class ConsoleStyler {
    */
   static logWarning(message: string, metadata?: Record<string, any>): void {
     const icon = "⚠️ ";
-    const color = this.supports256Color()
-      ? colors256.brightOrange
-      : colors.warning;
+    const color = this.supports256Color() ? colors256.brightOrange : colors.warning;
     this._logEnhanced("warning", message, icon, color, metadata);
   }
 
@@ -345,9 +323,7 @@ export class ConsoleStyler {
    */
   static logCritical(message: string, metadata?: Record<string, any>): void {
     const icon = "🚨";
-    const color = this.supports256Color()
-      ? colors256.brightRed
-      : colors.critical;
+    const color = this.supports256Color() ? colors256.brightRed : colors.critical;
     this._logEnhanced("critical", message, icon, color, metadata);
   }
 
@@ -429,9 +405,7 @@ export class ConsoleStyler {
 
     // Use enhanced colors for details
     const infoColor = this.supports256Color() ? colors256.skyBlue : colors.cyan;
-    const accentColor = this.supports256Color()
-      ? colors256.gold
-      : colors.yellow;
+    const accentColor = this.supports256Color() ? colors256.gold : colors.yellow;
 
     console.log(
       `   ${colors.dim}Version:${colors.reset} ${infoColor}${config.version}${colors.reset}`,
@@ -441,9 +415,7 @@ export class ConsoleStyler {
         this.getEnvironmentColor(config.environment)
       }${config.environment.toUpperCase()}${colors.reset}`,
     );
-    console.log(
-      `   ${colors.dim}Port:${colors.reset} ${accentColor}${config.port}${colors.reset}`,
-    );
+    console.log(`   ${colors.dim}Port:${colors.reset} ${accentColor}${config.port}${colors.reset}`);
     console.log(
       `   ${colors.dim}Author:${colors.reset} ${colors.bright}${config.author}${colors.reset}`,
     );
@@ -563,17 +535,13 @@ export class ConsoleStyler {
     }
 
     const line = topChar.repeat(width - 2);
-    console.log(
-      `${color}${topCornerLeft}${line}${topCornerRight}${colors.reset}`,
-    );
+    console.log(`${color}${topCornerLeft}${line}${topCornerRight}${colors.reset}`);
     console.log(
       `${color}${sideChar} ${colors.bright}${
         title.padEnd(width - 4)
       }${colors.reset}${color} ${sideChar}${colors.reset}`,
     );
-    console.log(
-      `${color}${bottomCornerLeft}${line}${bottomCornerRight}${colors.reset}`,
-    );
+    console.log(`${color}${bottomCornerLeft}${line}${bottomCornerRight}${colors.reset}`);
   }
 
   // ================================================================================
@@ -583,12 +551,7 @@ export class ConsoleStyler {
   /**
    * Enhanced route logging with method-specific styling and 256-color support
    */
-  static logRoute(
-    method: string,
-    path: string,
-    description: string,
-    responseTime?: number,
-  ): void {
+  static logRoute(method: string, path: string, description: string, responseTime?: number): void {
     const methodColors: Record<string, string> = this.supports256Color()
       ? {
         "GET": colors256.brightGreen,
@@ -611,9 +574,7 @@ export class ConsoleStyler {
 
     const methodColor = methodColors[method.toUpperCase()] || colors.cyan;
     const methodPadded = method.padEnd(6);
-    const pathPadded = path.length > 35
-      ? path.substring(0, 32) + "..."
-      : path.padEnd(35);
+    const pathPadded = path.length > 35 ? path.substring(0, 32) + "..." : path.padEnd(35);
 
     let timeStr = "";
     if (responseTime !== undefined) {
@@ -633,11 +594,7 @@ export class ConsoleStyler {
    */
   private static getResponseTimeColor(ms: number): string {
     if (!this.supports256Color()) {
-      return ms < 50
-        ? colors.success
-        : ms < 200
-        ? colors.warning
-        : colors.error;
+      return ms < 50 ? colors.success : ms < 200 ? colors.warning : colors.error;
     }
 
     if (ms < 10) return colors256.brightGreen;
@@ -665,11 +622,7 @@ export class ConsoleStyler {
         : successRate > 90
         ? colors256.yellow
         : colors256.brightRed)
-      : (successRate > 95
-        ? colors.success
-        : successRate > 90
-        ? colors.warning
-        : colors.error);
+      : (successRate > 95 ? colors.success : successRate > 90 ? colors.warning : colors.error);
 
     console.log(
       `   ${colors.bright}Uptime:${colors.reset} ${
@@ -693,21 +646,15 @@ export class ConsoleStyler {
           colors256.brightCyan || colors.cyan
         }${metrics.memory.heapUsed}${colors.reset}`,
       );
-      console.log(
-        `     Heap Total: ${colors.dim}${metrics.memory.heapTotal}${colors.reset}`,
-      );
-      console.log(
-        `     RSS: ${colors.dim}${metrics.memory.rss}${colors.reset}`,
-      );
+      console.log(`     Heap Total: ${colors.dim}${metrics.memory.heapTotal}${colors.reset}`);
+      console.log(`     RSS: ${colors.dim}${metrics.memory.rss}${colors.reset}`);
     }
 
     if (metrics.responseTime) {
       console.log(`\n   ${colors.bright}Response Times:${colors.reset}`);
       const avgColor = this.getResponseTimeColor(metrics.responseTime.avg);
       console.log(
-        `     Average: ${avgColor}${
-          metrics.responseTime.avg.toFixed(2)
-        }ms${colors.reset}`,
+        `     Average: ${avgColor}${metrics.responseTime.avg.toFixed(2)}ms${colors.reset}`,
       );
       console.log(
         `     Min: ${colors256.brightGreen || colors.success}${
@@ -732,9 +679,9 @@ export class ConsoleStyler {
         `     Queries: ${colors.brightWhite}${metrics.database.queries.toLocaleString()}${colors.reset}`,
       );
       console.log(
-        `     Avg Query Time: ${
-          this.getResponseTimeColor(metrics.database.avgQueryTime)
-        }${metrics.database.avgQueryTime.toFixed(2)}ms${colors.reset}`,
+        `     Avg Query Time: ${this.getResponseTimeColor(metrics.database.avgQueryTime)}${
+          metrics.database.avgQueryTime.toFixed(2)
+        }ms${colors.reset}`,
       );
     }
 
@@ -763,10 +710,7 @@ export class ConsoleStyler {
   /**
    * Enhanced table rendering with 256-color support
    */
-  static renderTable(
-    data: Array<Record<string, any>>,
-    columns: TableColumn[],
-  ): void {
+  static renderTable(data: Array<Record<string, any>>, columns: TableColumn[]): void {
     if (data.length === 0) {
       this.logWarning("No data to display in table");
       return;
@@ -776,18 +720,14 @@ export class ConsoleStyler {
     const maxWidths = columns.map((col) => {
       const labelWidth = stripAnsi(col.label).length;
       const dataWidth = Math.max(...data.map((row) => {
-        const value = col.formatter
-          ? col.formatter(row[col.key])
-          : String(row[col.key] || "");
+        const value = col.formatter ? col.formatter(row[col.key]) : String(row[col.key] || "");
         return stripAnsi(value).length;
       }));
       return col.width || Math.max(labelWidth, dataWidth, 10);
     });
 
     // Table header with enhanced colors
-    const headerColor = this.supports256Color()
-      ? colors256.brightCyan
-      : colors.cyan;
+    const headerColor = this.supports256Color() ? colors256.brightCyan : colors.cyan;
     const separator = maxWidths.map((w) => "─".repeat(w)).join("─┬─");
 
     console.log(`${colors.bright}┌─${separator}─┐${colors.reset}`);
@@ -809,9 +749,7 @@ export class ConsoleStyler {
 
       const dataRow = columns.map((col, colIndex) => {
         const value = row[col.key];
-        const formatted = formatters[col.key]
-          ? formatters[col.key]!(value)
-          : String(value || "");
+        const formatted = formatters[col.key] ? formatters[col.key]!(value) : String(value || "");
         const truncated = formatted.length > maxWidths[colIndex]
           ? formatted.substring(0, maxWidths[colIndex] - 3) + "..."
           : formatted;
@@ -916,19 +854,11 @@ export class ConsoleStyler {
   ): void {
     const icon = "🗄️";
     const color = this.supports256Color() ? colors256.purple : colors.magenta;
-    const tableInfo = table
-      ? ` on ${colors.bright}${table}${colors.reset}`
-      : "";
-    const durationInfo = duration
-      ? ` ${colors.dim}(${duration.toFixed(2)}ms)${colors.reset}`
-      : "";
-    const rowsInfo = rowsAffected !== undefined
-      ? ` - ${rowsAffected} rows affected`
-      : "";
+    const tableInfo = table ? ` on ${colors.bright}${table}${colors.reset}` : "";
+    const durationInfo = duration ? ` ${colors.dim}(${duration.toFixed(2)}ms)${colors.reset}` : "";
+    const rowsInfo = rowsAffected !== undefined ? ` - ${rowsAffected} rows affected` : "";
 
-    const durationColor = duration && duration > 100
-      ? colors.warning
-      : colors.info;
+    const durationColor = duration && duration > 100 ? colors.warning : colors.info;
     console.log(
       `${color}${icon} ${operation}${colors.reset}${tableInfo}${rowsInfo}${durationInfo}`,
     );
@@ -964,9 +894,7 @@ export class ConsoleStyler {
       };
 
     const clientInfo = clientId ? ` [${clientId.substring(0, 8)}...]` : "";
-    const dataInfo = data
-      ? ` - ${JSON.stringify(data).substring(0, 50)}...`
-      : "";
+    const dataInfo = data ? ` - ${JSON.stringify(data).substring(0, 50)}...` : "";
 
     console.log(
       `${eventColors[event]}${
@@ -978,21 +906,12 @@ export class ConsoleStyler {
   /**
    * Enhanced AI operation logging
    */
-  static logAI(
-    operation: string,
-    model?: string,
-    tokens?: number,
-    duration?: number,
-  ): void {
+  static logAI(operation: string, model?: string, tokens?: number, duration?: number): void {
     const icon = "🤖";
-    const color = this.supports256Color()
-      ? colors256.brightPurple
-      : colors.magenta;
+    const color = this.supports256Color() ? colors256.brightPurple : colors.magenta;
     const modelInfo = model ? ` ${colors.dim}[${model}]${colors.reset}` : "";
     const tokenInfo = tokens ? ` - ${tokens} tokens` : "";
-    const durationInfo = duration
-      ? ` ${colors.dim}(${duration.toFixed(2)}ms)${colors.reset}`
-      : "";
+    const durationInfo = duration ? ` ${colors.dim}(${duration.toFixed(2)}ms)${colors.reset}` : "";
 
     console.log(
       `${color}${icon} AI ${operation}${modelInfo}${tokenInfo}${durationInfo}${colors.reset}`,
@@ -1022,28 +941,19 @@ export class ConsoleStyler {
       };
 
     const { icon, color } = statusConfig[status];
-    console.log(
-      `${color}${icon} Feature: ${name} - ${description}${colors.reset}`,
-    );
+    console.log(`${color}${icon} Feature: ${name} - ${description}${colors.reset}`);
   }
 
   /**
    * Enhanced build logging
    */
-  static logBuild(
-    stage: string,
-    success: boolean,
-    duration?: number,
-    details?: string[],
-  ): void {
+  static logBuild(stage: string, success: boolean, duration?: number, details?: string[]): void {
     const icon = success ? "🏗️" : "💥";
     const color = success
       ? (this.supports256Color() ? colors256.brightGreen : colors.success)
       : (this.supports256Color() ? colors256.brightRed : colors.error);
 
-    const durationInfo = duration
-      ? ` ${colors.dim}(${duration.toFixed(2)}ms)${colors.reset}`
-      : "";
+    const durationInfo = duration ? ` ${colors.dim}(${duration.toFixed(2)}ms)${colors.reset}` : "";
 
     console.log(
       `${color}${icon} Build ${stage}: ${
@@ -1074,11 +984,7 @@ export class ConsoleStyler {
           icon: "🚀",
           color: colors256.brightGreen,
           message: "Production mode - Optimized for performance and security",
-          features: [
-            "Performance Optimization",
-            "Security Hardening",
-            "Monitoring",
-          ],
+          features: ["Performance Optimization", "Security Hardening", "Monitoring"],
         },
         testing: {
           icon: "🧪",
@@ -1089,13 +995,8 @@ export class ConsoleStyler {
         staging: {
           icon: "🎭",
           color: colors256.brightPurple,
-          message:
-            "Staging mode - Production-like environment for final testing",
-          features: [
-            "Production Mirror",
-            "Integration Testing",
-            "Performance Profiling",
-          ],
+          message: "Staging mode - Production-like environment for final testing",
+          features: ["Production Mirror", "Integration Testing", "Performance Profiling"],
         },
       }
       : {
@@ -1109,11 +1010,7 @@ export class ConsoleStyler {
           icon: "🚀",
           color: colors.green,
           message: "Production mode - Optimized for performance and security",
-          features: [
-            "Performance Optimization",
-            "Security Hardening",
-            "Monitoring",
-          ],
+          features: ["Performance Optimization", "Security Hardening", "Monitoring"],
         },
         testing: {
           icon: "🧪",
@@ -1124,13 +1021,8 @@ export class ConsoleStyler {
         staging: {
           icon: "🎭",
           color: colors.magenta,
-          message:
-            "Staging mode - Production-like environment for final testing",
-          features: [
-            "Production Mirror",
-            "Integration Testing",
-            "Performance Profiling",
-          ],
+          message: "Staging mode - Production-like environment for final testing",
+          features: ["Production Mirror", "Integration Testing", "Performance Profiling"],
         },
       };
 
@@ -1141,15 +1033,11 @@ export class ConsoleStyler {
       features: [],
     };
 
-    console.log(
-      `${config.color}${config.icon} ${config.message}${colors.reset}`,
-    );
+    console.log(`${config.color}${config.icon} ${config.message}${colors.reset}`);
 
     const envFeatures = features || config.features;
     if (envFeatures.length > 0) {
-      console.log(
-        `   ${colors.dim}Features: ${envFeatures.join(", ")}${colors.reset}`,
-      );
+      console.log(`   ${colors.dim}Features: ${envFeatures.join(", ")}${colors.reset}`);
     }
   }
 
@@ -1168,11 +1056,7 @@ export class ConsoleStyler {
     // Use gradient colors based on progress
     let barColor: string;
     if (!this.supports256Color()) {
-      barColor = percent < 60
-        ? colors.green
-        : percent < 80
-        ? colors.yellow
-        : colors.red;
+      barColor = percent < 60 ? colors.green : percent < 80 ? colors.yellow : colors.red;
     } else {
       if (percent < 30) barColor = colors256.brightGreen;
       else if (percent < 60) barColor = colors256.green;
@@ -1188,8 +1072,7 @@ export class ConsoleStyler {
     const countStr = `(${current}/${total})`;
     const messageStr = message ? ` ${colors.dim}${message}${colors.reset}` : "";
 
-    const encoder = new TextEncoder();
-    Deno.stdout.writeSync(encoder.encode(`\r${bar} ${percentStr} ${countStr}${messageStr}`));
+    Deno.stdout.writeSync(new TextEncoder().encode(`\r${bar} ${percentStr} ${countStr}${messageStr}`));
 
     if (current >= total) {
       console.log(""); // New line when complete
@@ -1201,20 +1084,15 @@ export class ConsoleStyler {
    */
   static createSpinner(message: string): SpinnerInstance {
     const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-    const spinnerColor = this.supports256Color()
-      ? colors256.brightCyan
-      : colors.cyan;
+    const spinnerColor = this.supports256Color() ? colors256.brightCyan : colors.cyan;
     let currentFrame = 0;
     let intervalId: number | null = null;
-    const encoder = new TextEncoder();
 
     return {
       start: () => {
         intervalId = setInterval(() => {
           const frame = frames[currentFrame];
-          Deno.stdout.writeSync(
-            encoder.encode(`\r${spinnerColor}${frame}${colors.reset} ${message}`)
-          );
+          Deno.stdout.writeSync(new TextEncoder().encode(`\r${spinnerColor}${frame}${colors.reset} ${message}`));
           currentFrame = (currentFrame + 1) % frames.length;
         }, 80);
       },
@@ -1223,11 +1101,9 @@ export class ConsoleStyler {
           clearInterval(intervalId);
           intervalId = null;
         }
-        Deno.stdout.writeSync(encoder.encode("\r\x1b[K")); // Clear line
+        Deno.stdout.writeSync(new TextEncoder().encode("\r\x1b[K")); // Clear line
         if (finalMessage) {
-          const successColor = this.supports256Color()
-            ? colors256.brightGreen
-            : colors.success;
+          const successColor = this.supports256Color() ? colors256.brightGreen : colors.success;
           console.log(`${successColor}✓${colors.reset} ${finalMessage}`);
         }
       },
@@ -1306,12 +1182,8 @@ export class ConsoleStyler {
    */
   private static formatDuration(seconds: number): string {
     if (seconds < 60) return `${seconds.toFixed(0)}s`;
-    if (seconds < 3600) {
-      return `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
-    }
-    return `${Math.floor(seconds / 3600)}h ${
-      Math.floor((seconds % 3600) / 60)
-    }m`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
+    return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
   }
 
   /**

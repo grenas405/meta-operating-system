@@ -6,16 +6,12 @@
  * Demonstrates all new features while maintaining backward compatibility
  */
 
-import { ConsoleStyler } from "./ConsoleStyler.ts";
+import { ConsoleStyler } from "../core/console.ts";
 
 console.log("\n");
-console.log(
-  "╔════════════════════════════════════════════════════════════════╗",
-);
+console.log("╔════════════════════════════════════════════════════════════════╗");
 console.log("║     🎨 Enhanced ConsoleStyler - Integration Demo 🎨          ║");
-console.log(
-  "╚════════════════════════════════════════════════════════════════╝",
-);
+console.log("╚════════════════════════════════════════════════════════════════╝");
 console.log("\n");
 
 // =============================================================================
@@ -110,10 +106,7 @@ console.log("\n");
 
 // Enhanced WebSocket logging
 ConsoleStyler.logWebSocket("connect", "client-abc123");
-ConsoleStyler.logWebSocket("message", "client-abc123", {
-  type: "chat",
-  text: "Hello!",
-});
+ConsoleStyler.logWebSocket("message", "client-abc123", { type: "chat", text: "Hello!" });
 ConsoleStyler.logWebSocket("disconnect", "client-abc123");
 
 console.log("\n");
@@ -167,34 +160,10 @@ ConsoleStyler.logMetrics(metrics);
 ConsoleStyler.logSection("📋 Enhanced Table Rendering", "brightYellow");
 
 const users = [
-  {
-    id: 1,
-    name: "Alice Johnson",
-    email: "alice@example.com",
-    status: "active",
-    role: "admin",
-  },
-  {
-    id: 2,
-    name: "Bob Smith",
-    email: "bob@example.com",
-    status: "active",
-    role: "user",
-  },
-  {
-    id: 3,
-    name: "Charlie Brown",
-    email: "charlie@example.com",
-    status: "inactive",
-    role: "user",
-  },
-  {
-    id: 4,
-    name: "Diana Prince",
-    email: "diana@example.com",
-    status: "active",
-    role: "moderator",
-  },
+  { id: 1, name: "Alice Johnson", email: "alice@example.com", status: "active", role: "admin" },
+  { id: 2, name: "Bob Smith", email: "bob@example.com", status: "active", role: "user" },
+  { id: 3, name: "Charlie Brown", email: "charlie@example.com", status: "inactive", role: "user" },
+  { id: 4, name: "Diana Prince", email: "diana@example.com", status: "active", role: "moderator" },
 ];
 
 ConsoleStyler.renderTable(users, [
@@ -331,19 +300,11 @@ ConsoleStyler.logSection("🎨 Direct Color System Access", "brightMagenta");
 console.log(
   `${ConsoleStyler.colors.bright}You can access the full color system:${ConsoleStyler.colors.reset}`,
 );
+console.log(`  • ${ConsoleStyler.colors256.orange}256 named colors${ConsoleStyler.colors.reset}`);
 console.log(
-  `  • ${ConsoleStyler.colors256.orange}256 named colors${ConsoleStyler.colors.reset}`,
+  `  • ${ConsoleStyler.colors.rgb(255, 100, 200)}RGB true color${ConsoleStyler.colors.reset}`,
 );
-console.log(
-  `  • ${
-    ConsoleStyler.colors.rgb(255, 100, 200)
-  }RGB true color${ConsoleStyler.colors.reset}`,
-);
-console.log(
-  `  • ${
-    ConsoleStyler.hexToRgb("#1DA1F2")
-  }Hex colors${ConsoleStyler.colors.reset}`,
-);
+console.log(`  • ${ConsoleStyler.hexToRgb("#1DA1F2")}Hex colors${ConsoleStyler.colors.reset}`);
 console.log(
   `  • ${ConsoleStyler.palettes.dracula.purple}Themed palettes${ConsoleStyler.colors.reset}`,
 );
@@ -379,13 +340,7 @@ ConsoleStyler.logBox([
 
 console.log("\n");
 
-console.log(
-  "╔════════════════════════════════════════════════════════════════╗",
-);
-console.log(
-  "║           Demo Complete - Enjoy Enhanced Logging! 🚀          ║",
-);
-console.log(
-  "╚════════════════════════════════════════════════════════════════╝",
-);
+console.log("╔════════════════════════════════════════════════════════════════╗");
+console.log("║           Demo Complete - Enjoy Enhanced Logging! 🚀          ║");
+console.log("╚════════════════════════════════════════════════════════════════╝");
 console.log("\n");

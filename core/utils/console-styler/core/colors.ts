@@ -702,3 +702,105 @@ export function testColorSupport(): void {
 
   console.log("\n");
 }
+
+// =============================================================================
+// COLOR SYSTEM CLASS (Unified Interface)
+// =============================================================================
+
+/**
+ * ColorSystem provides a unified, class-based interface to all color functions
+ * This is useful for dependency injection and easier testing
+ */
+export class ColorSystem {
+  // Re-export all color constants
+  static readonly codes = colors;
+  static readonly colors256 = colors256;
+  static readonly palettes = palettes;
+
+  // Color generation methods
+  static rgb(r: number, g: number, b: number): string {
+    return colors.rgb(r, g, b);
+  }
+
+  static bgRgb(r: number, g: number, b: number): string {
+    return colors.bgRgb(r, g, b);
+  }
+
+  static color256(colorNumber: number): string {
+    return color256(colorNumber);
+  }
+
+  static bgColor256(colorNumber: number): string {
+    return bgColor256(colorNumber);
+  }
+
+  static hexToRgb(hex: string): string {
+    return hexToRgb(hex);
+  }
+
+  static hexToBgRgb(hex: string): string {
+    return hexToBgRgb(hex);
+  }
+
+  static rgbTo256(r: number, g: number, b: number): number {
+    return rgbTo256(r, g, b);
+  }
+
+  static createGradient(
+    startRgb: [number, number, number],
+    endRgb: [number, number, number],
+    steps: number,
+  ): string[] {
+    return createGradient(startRgb, endRgb, steps);
+  }
+
+  // Detection methods
+  static detectColorSupport(): ColorSupport {
+    return detectColorSupport();
+  }
+
+  static supportsColor(): boolean {
+    return supportsColor();
+  }
+
+  static supports256Color(): boolean {
+    return supports256Color();
+  }
+
+  static supportsTrueColor(): boolean {
+    return supportsTrueColor();
+  }
+
+  // Utility methods
+  static colorize(text: string, color: ColorName | string): string {
+    return colorize(text, color);
+  }
+
+  static applyModifiers(text: string, modifiers: ColorName[]): string {
+    return applyModifiers(text, modifiers);
+  }
+
+  static strip(text: string): string {
+    return stripAnsi(text);
+  }
+
+  static stripAnsi(text: string): string {
+    return stripAnsi(text);
+  }
+
+  /**
+   * Get visible length of text (without ANSI codes)
+   */
+  static visibleLength(text: string): number {
+    return stripAnsi(text).length;
+  }
+
+  // Display methods
+  static displayColorPalette(): void {
+    displayColorPalette();
+  }
+
+  static testColorSupport(): void {
+    testColorSupport();
+  }
+}
