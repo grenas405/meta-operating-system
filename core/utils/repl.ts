@@ -5,6 +5,7 @@
 
 import { ConsoleStyler } from "./console-styler/mod.ts";
 import type { Kernel } from "../kernel.ts";
+import { manCommand } from "./man.ts";
 
 interface ReplCommand {
   name: string;
@@ -35,10 +36,15 @@ export class MetaRepl {
       aliases: ["h", "?"],
       handler: () => {
         ConsoleStyler.logInfo("\nAvailable commands:");
+        // Use a Set to track unique commands by name to avoid duplicates
+        const seen = new Set<string>();
         const commands = Array.from(this.commands.values());
         for (const cmd of commands) {
-          const aliases = cmd.aliases ? ` (${cmd.aliases.join(", ")})` : "";
-          ConsoleStyler.logInfo(`  ${cmd.name}${aliases} - ${cmd.description}`);
+          if (!seen.has(cmd.name)) {
+            seen.add(cmd.name);
+            const aliases = cmd.aliases ? ` (${cmd.aliases.join(", ")})` : "";
+            ConsoleStyler.logInfo(`  ${cmd.name}${aliases} - ${cmd.description}`);
+          }
         }
         ConsoleStyler.logInfo("");
       },
@@ -174,6 +180,23 @@ export class MetaRepl {
         } catch (error) {
           ConsoleStyler.logError(
             `Evaluation error: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+      },
+    });
+
+    // Man command (Genesis manual system)
+    this.registerCommand({
+      name: "man",
+      description: "Display Genesis manual pages",
+      handler: async (args) => {
+        try {
+          await manCommand(args);
+        } catch (error) {
+          ConsoleStyler.logError(
+            `Manual error: ${
               error instanceof Error ? error.message : String(error)
             }`,
           );
