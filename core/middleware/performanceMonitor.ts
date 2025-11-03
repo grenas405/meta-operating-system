@@ -3,6 +3,8 @@
 // 📊 DenoGenesis Framework - Advanced Performance Monitoring
 // Real-time metrics, memory tracking, and request analysis for optimization
 // ================================================================================
+
+import { ConsoleStyler, ColorSystem } from "../utils/console-styler/mod.ts";
 //
 // UNIX PHILOSOPHY IMPLEMENTATION:
 // --------------------------------
@@ -1349,25 +1351,21 @@ export function createPerformanceMiddleware(
       // -----------------------------------------------------------------------
 
       if (isDevelopment) {
-        // Color-coded console output based on status code
-        // 2xx = green (success)
-        // 3xx = yellow (redirect)
-        // 4xx+ = red (error)
+        // Color-coded console output based on status code using ConsoleStyler
+        const colors = new ColorSystem();
         const statusColor = status >= 400
-          ? "\x1b[31m" // Red
+          ? "red"
           : status >= 300
-          ? "\x1b[33m" // Yellow
-          : "\x1b[32m"; // Green
-        const resetColor = "\x1b[0m";
+          ? "yellow"
+          : "green";
 
         // Log format: 📊 METHOD PATH - STATUS (TIME) [ID]
-        console.log(
-          `📊 ${statusColor}${method} ${path} - ${status} (${responseTime}ms) [${requestId}]${resetColor}`,
-        );
+        const logMessage = `📊 ${method} ${path} - ${colors.colorize(status.toString(), statusColor)} (${responseTime}ms) [${requestId}]`;
+        ConsoleStyler.logInfo(logMessage);
 
         // Warn about slow requests (>1000ms)
         if (responseTime > 1000) {
-          console.log(`⚠️  Slow request detected: ${responseTime}ms for ${method} ${path}`);
+          ConsoleStyler.logWarning(`Slow request detected: ${responseTime}ms for ${method} ${path}`);
         }
       }
 
@@ -1400,13 +1398,14 @@ export function createPerformanceMiddleware(
       // Log error in development mode
       if (isDevelopment) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(
-          `❌ Request failed [${requestId}] after ${responseTime}ms: ${errorMessage}`,
+        ConsoleStyler.logError(
+          `Request failed [${requestId}] after ${responseTime}ms`,
+          { error: errorMessage },
         );
 
         // Optional: log full stack trace
         if (error instanceof Error && error.stack) {
-          console.error(error.stack);
+          ConsoleStyler.logError("Stack trace", { stack: error.stack });
         }
       }
 

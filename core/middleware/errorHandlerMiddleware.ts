@@ -5,6 +5,7 @@
 
 import type { Context } from "../utils/context.ts";
 import { finalizeResponse } from "../utils/context.ts";
+import { ConsoleStyler } from "../utils/console-styler/mod.ts";
 // --------------------------------------------------------------------------------
 // TODO:
 // 1. Test examples in meta documentation
@@ -769,8 +770,7 @@ export class ErrorHandler {
     environment: string,
   ): Promise<void> {
     // Log to console immediately (most reliable)
-    console.error(`💥 Uncaught Exception: ${error.message}`);
-    console.error(error.stack);
+    ConsoleStyler.logError("Uncaught Exception", { message: error.message, stack: error.stack });
 
     // Track error for analytics
     // Continue even if this fails
@@ -787,7 +787,7 @@ export class ErrorHandler {
         await this.logErrorToFile(error, "UNCAUGHT_EXCEPTION");
       } catch (logError: any) {
         // Log failure to log is bad, but not fatal
-        console.error("Failed to log uncaught exception:", logError.message);
+        ConsoleStyler.logError("Failed to log uncaught exception", { error: logError.message });
       }
     }
 
@@ -803,7 +803,7 @@ export class ErrorHandler {
     }
 
     // Announce graceful shutdown
-    console.log("🔄 Initiating graceful shutdown due to uncaught exception...");
+    ConsoleStyler.logInfo("Initiating graceful shutdown due to uncaught exception...");
 
     // TODO: In production, you might want to:
     // 1. Close database connections
@@ -859,7 +859,7 @@ export class ErrorHandler {
     const error = reason instanceof Error ? reason : new Error(String(reason));
 
     // Log to console
-    console.error(`💥 Unhandled Promise Rejection: ${error.message}`);
+    ConsoleStyler.logError("Unhandled Promise Rejection", { message: error.message });
 
     // Track error for analytics
     try {
@@ -873,7 +873,7 @@ export class ErrorHandler {
     try {
       await this.logErrorToFile(error, "UNHANDLED_REJECTION");
     } catch (logError: any) {
-      console.error("Failed to log unhandled rejection:", logError.message);
+      ConsoleStyler.logError("Failed to log unhandled rejection", { error: logError.message });
     }
 
     // Report to monitoring service
@@ -992,7 +992,7 @@ export class ErrorHandler {
     } catch (fileError: any) {
       // Logging failure is not fatal
       // Fall back to console logging
-      console.error("Failed to write error log:", fileError.message);
+      ConsoleStyler.logError("Failed to write error log", { error: fileError.message });
     }
   }
 
@@ -1053,7 +1053,7 @@ export class ErrorHandler {
       if (reportingUrl) {
         // TODO: Implement actual reporting
         // For now, just log that we would report
-        console.log("📊 Error reported to monitoring service");
+        ConsoleStyler.logInfo("Error reported to monitoring service");
 
         // Real implementation would look like:
         // await fetch(reportingUrl, {
@@ -1075,10 +1075,9 @@ export class ErrorHandler {
       }
     } catch (reportError: any) {
       // Reporting failure is not fatal
-      console.error(
-        "Failed to report error to monitoring service:",
-        reportError.message,
-      );
+      ConsoleStyler.logError("Failed to report error to monitoring service", {
+        error: reportError.message,
+      });
     }
   }
 
@@ -1322,12 +1321,14 @@ async function handleRequestError(
 
   if (config.logErrors) {
     // Console logging
-    console.error(`💥 Request Error [${requestId}]:`, err.message);
+    const logData: any = { message: err.message, requestId };
 
     // Stack trace only in development
     if (config.showStackTrace && config.environment === "development") {
-      console.error(err.stack);
+      logData.stack = err.stack;
     }
+
+    ConsoleStyler.logError("Request Error", logData);
   }
 
   // ===========================================================================
@@ -1338,7 +1339,7 @@ async function handleRequestError(
     try {
       await logRequestErrorToFile(err, ctx, requestId);
     } catch (logError: any) {
-      console.error("Failed to log request error:", logError.message);
+      ConsoleStyler.logError("Failed to log request error", { error: logError.message });
     }
   }
 
@@ -1521,7 +1522,7 @@ async function logRequestErrorToFile(
     const logEntry = JSON.stringify(errorLog) + "\n";
     await Deno.writeTextFile("./logs/requests.log", logEntry, { append: true });
   } catch (fileError: any) {
-    console.error("Failed to write request error log:", fileError.message);
+    ConsoleStyler.logError("Failed to write request error log", { error: fileError.message });
   }
 }
 

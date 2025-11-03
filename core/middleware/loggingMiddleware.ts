@@ -1,6 +1,7 @@
 // middleware/logging.ts → Advanced Logging System
 
 import type { Context } from "../utils/context.ts";
+import { ConsoleStyler, ColorSystem } from "../utils/console-styler/mod.ts";
 // ================================================================================
 // 📝 DenoGenesis Framework - Enterprise Request/Response Logging
 // Comprehensive logging with sanitization, performance tracking, and formatting
@@ -163,237 +164,59 @@ export interface LoggingConfig {
 }
 
 // ================================================================================
-// 🎨 CONSOLE STYLING UTILITIES
+// 🎨 CONSOLE STYLING UTILITIES (Using ConsoleStyler Library)
 // ================================================================================
 
 /**
- * ANSI color code utilities for terminal output
+ * Styling utilities for logging with ConsoleStyler
  *
  * DESIGN PRINCIPLES:
- * - Static class (no instantiation needed)
- * - Pure functions (no side effects)
- * - Terminal-safe (works in all environments)
- *
- * ANSI ESCAPE CODES:
- * ------------------
- * ANSI codes are special sequences that control terminal formatting:
- * - \x1b[ = escape sequence start
- * - [0m = reset all formatting
- * - [31m = red foreground
- * - [1m = bold/bright
- *
- * FORMAT: \x1b[{code}m{text}\x1b[0m
- *
- * WHY USE ANSI CODES?
- * - Fast (no external dependencies)
- * - Universal (works in most terminals)
- * - Readable (color-coded logs)
- * - Zero overhead when not needed
- *
- * COMPATIBILITY:
- * - Linux/Mac: Full support
- * - Windows: Partial support (Windows 10+)
- * - CI/CD: Usually stripped automatically
- * - Log files: Codes visible but harmless
+ * - Uses shared ConsoleStyler library for consistency
+ * - ColorSystem provides standardized color management
+ * - No manual ANSI codes - library handles terminal compatibility
  *
  * @class LoggerStyler
  * @static
- *
- * @example
- * ```typescript
- * // Basic usage
- * const red = LoggerStyler.colorize('ERROR', 'red');
- * console.log(red);  // Prints "ERROR" in red
- *
- * // Method-specific colors
- * const method = 'GET';
- * const color = LoggerStyler.getMethodColor(method);
- * console.log(LoggerStyler.colorize(method, color));  // Green "GET"
- *
- * // Status code colors
- * const status = 404;
- * const statusColor = LoggerStyler.getStatusColor(status);
- * console.log(LoggerStyler.colorize(status.toString(), statusColor));  // Red "404"
- * ```
  */
 class LoggerStyler {
-  /**
-   * ANSI color code mappings
-   *
-   * COLOR CODE REFERENCE:
-   * ---------------------
-   * Standard Colors (30-37):
-   * - 30: Black
-   * - 31: Red (errors, DELETE)
-   * - 32: Green (success, GET)
-   * - 33: Yellow (warnings, PUT, 3xx)
-   * - 34: Blue (info, POST)
-   * - 35: Magenta (5xx errors, PATCH)
-   * - 36: Cyan (debug, default)
-   * - 37: White
-   *
-   * Bright Colors (90-97):
-   * - 90: Bright Black / Gray (timestamps, metadata)
-   *
-   * Special Codes:
-   * - 0: Reset all formatting
-   * - 1: Bold/Bright
-   * - 2: Dim
-   *
-   * @private
-   * @static
-   * @readonly
-   */
-  private static colors = {
-    reset: "\x1b[0m", // Reset all formatting
-    bright: "\x1b[1m", // Bold/bright text
-    dim: "\x1b[2m", // Dim/faint text
-    red: "\x1b[31m", // Red foreground
-    green: "\x1b[32m", // Green foreground
-    yellow: "\x1b[33m", // Yellow foreground
-    blue: "\x1b[34m", // Blue foreground
-    magenta: "\x1b[35m", // Magenta foreground
-    cyan: "\x1b[36m", // Cyan foreground
-    white: "\x1b[37m", // White foreground
-    gray: "\x1b[90m", // Gray foreground (bright black)
-  };
+  private static colors = new ColorSystem();
 
   /**
-   * Wrap text in ANSI color codes
-   *
-   * ALGORITHM:
-   * 1. Prepend color code
-   * 2. Append text
-   * 3. Append reset code (prevents color bleed)
-   *
-   * WHY ALWAYS RESET?
-   * - Prevents color from affecting subsequent output
-   * - Ensures terminal returns to default state
-   * - Critical for mixed-color output
-   *
-   * PERFORMANCE:
-   * - O(1) string concatenation
-   * - Template literals are fast
-   * - No regex or complex parsing
-   *
-   * @public
-   * @static
-   * @param {string} text - Text to colorize
-   * @param {string} color - Color name from colors object
-   * @returns {string} ANSI-formatted string
-   *
-   * @example
-   * ```typescript
-   * LoggerStyler.colorize('SUCCESS', 'green');
-   * // Returns: "\x1b[32mSUCCESS\x1b[0m"
-   * // Displays: SUCCESS (in green)
-   *
-   * LoggerStyler.colorize('ERROR', 'red');
-   * // Returns: "\x1b[31mERROR\x1b[0m"
-   * // Displays: ERROR (in red)
-   * ```
+   * Colorize text using ConsoleStyler's color system
    */
-  static colorize(
-    text: string,
-    color: keyof typeof LoggerStyler.colors,
-  ): string {
-    return `${this.colors[color]}${text}${this.colors.reset}`;
+  static colorize(text: string, color: string): string {
+    return this.colors.colorize(text, color);
   }
 
   /**
    * Get appropriate color for HTTP method
-   *
-   * COLOR MAPPING RATIONALE:
-   * ------------------------
-   * - GET (green): Safe, idempotent, read-only → success color
-   * - POST (blue): Create new resource → informational color
-   * - PUT (yellow): Update/replace → caution color (modifying)
-   * - DELETE (red): Remove resource → danger color
-   * - PATCH (magenta): Partial update → distinct from PUT
-   * - Others (cyan): HEAD, OPTIONS, CONNECT → neutral color
-   *
-   * STANDARDS:
-   * - Based on REST semantics
-   * - Widely adopted convention
-   * - Intuitive for developers
-   *
-   * @public
-   * @static
-   * @param {string} method - HTTP method (case-insensitive)
-   * @returns {string} Color name
-   *
-   * @example
-   * ```typescript
-   * LoggerStyler.getMethodColor('GET');     // 'green'
-   * LoggerStyler.getMethodColor('POST');    // 'blue'
-   * LoggerStyler.getMethodColor('DELETE');  // 'red'
-   * LoggerStyler.getMethodColor('get');     // 'green' (case-insensitive)
-   * ```
    */
-  static getMethodColor(method: string): keyof typeof LoggerStyler.colors {
-    // Convert to uppercase for case-insensitive comparison
+  static getMethodColor(method: string): string {
     switch (method.toUpperCase()) {
       case "GET":
-        return "green"; // Safe, read-only
+        return "green";
       case "POST":
-        return "blue"; // Create operation
+        return "blue";
       case "PUT":
-        return "yellow"; // Update/replace
+        return "yellow";
       case "DELETE":
-        return "red"; // Dangerous operation
+        return "red";
       case "PATCH":
-        return "magenta"; // Partial update
+        return "magenta";
       default:
-        return "cyan"; // Other methods (HEAD, OPTIONS, etc.)
+        return "cyan";
     }
   }
 
   /**
    * Get appropriate color for HTTP status code
-   *
-   * COLOR MAPPING BY STATUS CLASS:
-   * -------------------------------
-   * - 2xx (green): Success (OK, Created, Accepted)
-   * - 3xx (yellow): Redirection (Moved, Found, Not Modified)
-   * - 4xx (red): Client Error (Bad Request, Not Found, Forbidden)
-   * - 5xx (magenta): Server Error (Internal Error, Bad Gateway)
-   * - Other (gray): Unrecognized or informational
-   *
-   * STATUS CODE RANGES:
-   * - 1xx: Informational (rarely used in responses)
-   * - 2xx: Success (200 OK, 201 Created, 204 No Content)
-   * - 3xx: Redirection (301 Moved, 302 Found, 304 Not Modified)
-   * - 4xx: Client Error (400 Bad Request, 401 Unauthorized, 404 Not Found)
-   * - 5xx: Server Error (500 Internal Error, 502 Bad Gateway, 503 Unavailable)
-   *
-   * @public
-   * @static
-   * @param {number} status - HTTP status code
-   * @returns {string} Color name
-   *
-   * @example
-   * ```typescript
-   * LoggerStyler.getStatusColor(200);  // 'green'  (OK)
-   * LoggerStyler.getStatusColor(404);  // 'red'    (Not Found)
-   * LoggerStyler.getStatusColor(500);  // 'magenta' (Internal Error)
-   * LoggerStyler.getStatusColor(301);  // 'yellow' (Moved Permanently)
-   * ```
    */
-  static getStatusColor(status: number): keyof typeof LoggerStyler.colors {
-    // Status codes are grouped in ranges of 100
-    if (status >= 200 && status < 300) {
-      return "green"; // Success
-    }
-    if (status >= 300 && status < 400) {
-      return "yellow"; // Redirection
-    }
-    if (status >= 400 && status < 500) {
-      return "red"; // Client error
-    }
-    if (status >= 500) {
-      return "magenta"; // Server error
-    }
-    return "gray"; // Other (1xx informational, or invalid)
+  static getStatusColor(status: number): string {
+    if (status >= 200 && status < 300) return "green";
+    if (status >= 300 && status < 400) return "yellow";
+    if (status >= 400 && status < 500) return "red";
+    if (status >= 500) return "magenta";
+    return "gray";
   }
 }
 
@@ -570,7 +393,7 @@ class HeaderSanitizer {
       }
     } catch (error: any) {
       // Graceful degradation: log warning but don't crash
-      console.warn("Header sanitization failed:", error.message);
+      ConsoleStyler.logWarning("Header sanitization failed", { error: error.message });
       return { "sanitization-error": "Failed to process headers" };
     }
 

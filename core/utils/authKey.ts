@@ -6,6 +6,7 @@
 // a secure secret automatically if missing, then persists it to .env.
 // ============================================================================
 import * as jose from "https://deno.land/x/jose@v5.2.0/index.ts";
+import { ConsoleStyler } from "./console-styler/mod.ts";
 
 // ============================================================================
 // ============================================================================
@@ -19,7 +20,7 @@ let JWT_SECRET = env.JWT_SECRET;
 // ============================================================================
 
 if (!JWT_SECRET) {
-  console.warn("⚠️  JWT_SECRET not found in .env — generating a new one...");
+  ConsoleStyler.logWarning("JWT_SECRET not found in .env — generating a new one...");
 
   // Generate cryptographically secure 256-bit (32-byte) random key
   const randomBytes = crypto.getRandomValues(new Uint8Array(32));
@@ -33,7 +34,7 @@ if (!JWT_SECRET) {
   try {
     existingContent = await Deno.readTextFile(envPath);
   } catch (_error) {
-    console.log("🆕 No existing .env file found. Creating one...");
+    ConsoleStyler.logInfo("No existing .env file found. Creating one...");
   }
 
   // Update or append JWT_SECRET
@@ -42,7 +43,7 @@ if (!JWT_SECRET) {
     : `${existingContent.trim()}\nJWT_SECRET=${JWT_SECRET}\n`;
 
   await Deno.writeTextFile(envPath, updatedContent);
-  console.log("✅ New JWT_SECRET generated and written to .env");
+  ConsoleStyler.logSuccess("New JWT_SECRET generated and written to .env");
 }
 
 // ============================================================================

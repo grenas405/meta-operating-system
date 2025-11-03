@@ -1,6 +1,7 @@
 // middleware/healthCheck.ts → System Health Monitoring
 
 import type { Context } from "../utils/context.ts";
+import { ConsoleStyler } from "../utils/console-styler/mod.ts";
 // ================================================================================
 // 🔍 DenoGenesis Framework - Advanced Health Check Middleware
 // Comprehensive system monitoring, dependency checks, and status reporting
@@ -728,7 +729,7 @@ export function createHealthCheckMiddleware(
          * - Out of memory
          * - System error
          */
-        console.error("Health check failed:", error);
+        ConsoleStyler.logError("Health check failed", { error: error.message });
 
         const failureBody = {
           status: "unhealthy",
@@ -1027,7 +1028,7 @@ export class HealthChecker {
     try {
       resources.disk = await this.checkDiskHealth();
     } catch (error: any) {
-      console.warn('Disk health check unavailable:', error.message);
+      ConsoleStyler.logWarning('Disk health check unavailable', { error: error.message });
     }
     
     // -------------------------------------------------------------------------
@@ -1050,7 +1051,7 @@ export class HealthChecker {
     try {
       resources.network = await this.checkNetworkHealth();
     } catch (error: any) {
-      console.warn('Network health check failed:', error.message);
+      ConsoleStyler.logWarning('Network health check failed', { error: error.message });
       resources.network = { status: 'unhealthy' };
     }
     
@@ -2216,7 +2217,7 @@ export class HealthMonitor {
       });
       
       // Log the alert
-      console.warn(`🚨 Health Alert [${severity.toUpperCase()}]: ${message}`);
+      ConsoleStyler.logWarning(`Health Alert [${severity.toUpperCase()}]`, { message });
       
       // Keep only last 100 alerts
       if (this.alerts.length > 100) {

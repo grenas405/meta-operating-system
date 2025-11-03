@@ -38,9 +38,9 @@ export class MetaRepl {
         const commands = Array.from(this.commands.values());
         for (const cmd of commands) {
           const aliases = cmd.aliases ? ` (${cmd.aliases.join(", ")})` : "";
-          console.log(`  ${cmd.name}${aliases} - ${cmd.description}`);
+          ConsoleStyler.logInfo(`  ${cmd.name}${aliases} - ${cmd.description}`);
         }
-        console.log("");
+        ConsoleStyler.logInfo("");
       },
     });
 
@@ -57,17 +57,17 @@ export class MetaRepl {
         }
 
         ConsoleStyler.logInfo("\nManaged Processes:");
-        console.log(
+        ConsoleStyler.logInfo(
           "ID".padEnd(20) +
             "NAME".padEnd(20) +
             "PID".padEnd(10) +
             "STATUS".padEnd(12) +
             "RESTARTS",
         );
-        console.log("-".repeat(80));
+        ConsoleStyler.logInfo("-".repeat(80));
 
         for (const proc of processes) {
-          console.log(
+          ConsoleStyler.logInfo(
             proc.id.padEnd(20) +
               proc.name.padEnd(20) +
               String(proc.pid || "N/A").padEnd(10) +
@@ -75,7 +75,7 @@ export class MetaRepl {
               String(proc.restartCount),
           );
         }
-        console.log("");
+        ConsoleStyler.logInfo("");
       },
     });
 
@@ -89,12 +89,14 @@ export class MetaRepl {
         const uptime = this.kernel.getUptime();
 
         ConsoleStyler.logInfo("\nKernel System Information:");
-        console.log(`  Version:    ${info.version}`);
-        console.log(`  PID:        ${info.pid}`);
-        console.log(`  Platform:   ${info.platform}`);
-        console.log(`  Uptime:     ${this.formatUptime(uptime)}`);
-        console.log(`  Start Time: ${new Date(info.startTime).toISOString()}`);
-        console.log("");
+        ConsoleStyler.logInfo(`  Version:    ${info.version}`);
+        ConsoleStyler.logInfo(`  PID:        ${info.pid}`);
+        ConsoleStyler.logInfo(`  Platform:   ${info.platform}`);
+        ConsoleStyler.logInfo(`  Uptime:     ${this.formatUptime(uptime)}`);
+        ConsoleStyler.logInfo(
+          `  Start Time: ${new Date(info.startTime).toISOString()}`,
+        );
+        ConsoleStyler.logInfo("");
       },
     });
 
@@ -114,7 +116,9 @@ export class MetaRepl {
           ConsoleStyler.logSuccess(`Process ${processId} killed successfully`);
         } catch (error) {
           ConsoleStyler.logError(
-            `Failed to kill process: ${error instanceof Error ? error.message : String(error)}`,
+            `Failed to kill process: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
           );
         }
       },
@@ -132,9 +136,9 @@ export class MetaRepl {
 
         ConsoleStyler.logInfo("\nCommand History:");
         this.history.forEach((cmd, index) => {
-          console.log(`  ${index + 1}: ${cmd}`);
+          ConsoleStyler.logInfo(`  ${index + 1}: ${cmd}`);
         });
-        console.log("");
+        ConsoleStyler.logInfo("");
       },
     });
 
@@ -162,12 +166,16 @@ export class MetaRepl {
 
         try {
           // Make kernel available in eval context
-          const result = eval(`(function(kernel) { return ${code}; })`)(this.kernel);
+          const result = eval(`(function(kernel) { return ${code}; })`)(
+            this.kernel,
+          );
           ConsoleStyler.logSuccess("Result:");
-          console.log(result);
+          ConsoleStyler.logInfo(result);
         } catch (error) {
           ConsoleStyler.logError(
-            `Evaluation error: ${error instanceof Error ? error.message : String(error)}`,
+            `Evaluation error: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
           );
         }
       },
@@ -252,7 +260,9 @@ export class MetaRepl {
         await command.handler(args, this.kernel);
       } catch (error) {
         ConsoleStyler.logError(
-          `Command error: ${error instanceof Error ? error.message : String(error)}`,
+          `Command error: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
         );
       }
     } else {
@@ -265,15 +275,21 @@ export class MetaRepl {
    * Display welcome message
    */
   private displayWelcome(): void {
-    console.log("");
-    ConsoleStyler.logSuccess("╔═══════════════════════════════════════════════╗");
-    ConsoleStyler.logSuccess("║      Meta-OS REPL Shell - Interactive Mode    ║");
-    ConsoleStyler.logSuccess("╚═══════════════════════════════════════════════╝");
-    console.log("");
+    ConsoleStyler.logInfo("");
+    ConsoleStyler.logSuccess(
+      "╔═══════════════════════════════════════════════╗",
+    );
+    ConsoleStyler.logSuccess(
+      "║      Meta-OS REPL Shell - Interactive Mode    ║",
+    );
+    ConsoleStyler.logSuccess(
+      "╚═══════════════════════════════════════════════╝",
+    );
+    ConsoleStyler.logInfo("");
     ConsoleStyler.logInfo("Type 'help' for available commands");
     ConsoleStyler.logInfo("Type 'exit' to leave REPL (kernel keeps running)");
     ConsoleStyler.logInfo("Press CTRL+C to shutdown the kernel");
-    console.log("");
+    ConsoleStyler.logInfo("");
   }
 
   /**

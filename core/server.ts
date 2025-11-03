@@ -165,7 +165,7 @@ class HTTPServer {
               },
             );
             // Signal to kernel that server is ready
-            console.log("SERVER_READY");
+            ConsoleStyler.logInfo("SERVER_READY");
           },
         },
         async (request) => {
