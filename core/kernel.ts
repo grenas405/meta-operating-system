@@ -6,6 +6,7 @@
  */
 
 import { ConsoleStyler } from "./utils/console-styler/ConsoleStyler.ts";
+import { MetaRepl } from "./utils/repl.ts";
 
 interface KernelConfig {
   debug: boolean;
@@ -535,7 +536,19 @@ class Kernel {
 
     this.logSuccess("Kernel boot complete");
 
-    // Keep the kernel running
+    // Start the REPL shell
+    await this.startRepl();
+  }
+
+  /**
+   * Start the interactive REPL shell
+   */
+  private async startRepl(): Promise<void> {
+    const repl = new MetaRepl(this);
+    await repl.start();
+
+    // After REPL exits, keep kernel running
+    this.log("REPL exited, kernel continues running in background");
     await new Promise(() => {}); // Run forever until signal
   }
 
