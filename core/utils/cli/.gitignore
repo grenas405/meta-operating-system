@@ -1,0 +1,57 @@
+# ==========================================
+# 🦕 Deno Project .gitignore
+# ==========================================
+
+# 🧱 Compiled executables (from `deno compile`)
+bin/
+dist/
+out/
+*.exe
+*.app
+*.dmg
+*.deb
+*.rpm
+
+# 🧩 Deno cache & vendor directories
+deno_dir/
+.deno/
+vendor/
+
+# ⚙️ Environment & configuration
+.env
+.env.*
+.env.local
+.env.production
+.env.development
+
+# 🧪 Test / coverage artifacts
+coverage/
+*.lcov
+
+# 🧰 Editor & IDE configs
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+*.bak
+*.log
+
+# 📦 Dependencies (for vendored modules)
+node_modules/
+
+# 🧑‍💻 System-specific files
+.DS_Store
+Thumbs.db
+
+# 🚀 Build and deployment artifacts
+build/
+deploy/
+public/assets/
+static/
+
+# 🧠 Misc
+*.lock
+*.tgz
+*.zip
+
