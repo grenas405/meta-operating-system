@@ -79,7 +79,10 @@ class HTTPServer {
     ConsoleStyler.logInfo(`[${timestamp}] [SERVER] ${message}`, metadata);
   }
 
-  private logSuccess(message: string, metadata?: Record<string, unknown>): void {
+  private logSuccess(
+    message: string,
+    metadata?: Record<string, unknown>,
+  ): void {
     const timestamp = new Date().toISOString();
     ConsoleStyler.logSuccess(`[${timestamp}] [SERVER] ${message}`, metadata);
   }
@@ -123,7 +126,9 @@ class HTTPServer {
 
     // Add middleware
     router.use(errorHandler());
-    router.use(createPerformanceMiddleware(this.performanceMonitor, this.config.debug));
+    router.use(
+      createPerformanceMiddleware(this.performanceMonitor, this.config.debug),
+    );
     router.use(logger());
     router.use(timing());
     router.use(requestId());
@@ -140,7 +145,9 @@ class HTTPServer {
       },
     });
 
-    this.log(`Starting HTTP listener on ${this.config.hostname}:${this.config.port}`);
+    this.log(
+      `Starting HTTP listener on ${this.config.hostname}:${this.config.port}`,
+    );
 
     try {
       this.server = Deno.serve(
@@ -149,23 +156,31 @@ class HTTPServer {
           hostname: this.config.hostname,
           signal: this.abortController.signal,
           onListen: ({ port, hostname }) => {
-            this.logSuccess(`HTTP server listening on http://${hostname}:${port}`, {
-              port,
-              hostname,
-              protocol: "http",
-            });
+            this.logSuccess(
+              `HTTP server listening on http://${hostname}:${port}`,
+              {
+                port,
+                hostname,
+                protocol: "http",
+              },
+            );
           },
         },
         async (request) => {
           try {
             return await router.handle(request);
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            this.logError(`Unhandled error in request handler: ${errorMessage}`, {
-              url: request.url,
-              method: request.method,
-              error: errorMessage,
-            });
+            const errorMessage = error instanceof Error
+              ? error.message
+              : String(error);
+            this.logError(
+              `Unhandled error in request handler: ${errorMessage}`,
+              {
+                url: request.url,
+                method: request.method,
+                error: errorMessage,
+              },
+            );
 
             return new Response(
               JSON.stringify({ error: "Internal Server Error" }),
@@ -181,7 +196,9 @@ class HTTPServer {
       await this.server.finished;
       this.logSuccess("HTTP server shutdown complete");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
       this.logError(`Failed to start HTTP server: ${errorMessage}`, {
         port: this.config.port,
         hostname: this.config.hostname,
@@ -195,7 +212,9 @@ class HTTPServer {
    * Graceful shutdown
    */
   private async shutdown(signal: string): Promise<void> {
-    ConsoleStyler.logWarning(`Received ${signal}, shutting down HTTP server...`);
+    ConsoleStyler.logWarning(
+      `Received ${signal}, shutting down HTTP server...`,
+    );
 
     // Abort the server
     this.abortController.abort();
