@@ -152,9 +152,8 @@ class Kernel {
       if (!process.child?.stdout) return;
       for await (const chunk of process.child.stdout) {
         const text = decoder.decode(chunk);
-        if (this.config.debug) {
-          ConsoleStyler.logInfo(`[${process.name}] ${text.trim()}`);
-        }
+        // Always display process output
+        ConsoleStyler.logInfo(`[${process.name}] ${text.trim()}`);
       }
     })();
 
@@ -198,9 +197,12 @@ class Kernel {
         // Auto-restart if enabled
         if (process.autoRestart) {
           process.restartCount++;
-          this.log(`Restarting process: ${process.name} (attempt ${process.restartCount})`, {
-            id: process.id,
-          });
+          this.log(
+            `Restarting process: ${process.name} (attempt ${process.restartCount})`,
+            {
+              id: process.id,
+            },
+          );
 
           // Wait a bit before restarting
           await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -212,10 +214,13 @@ class Kernel {
           process.status = "running";
           process.startTime = Date.now();
 
-          this.logSuccess(`Process restarted: ${process.name} (PID: ${child.pid})`, {
-            id: process.id,
-            pid: child.pid,
-          });
+          this.logSuccess(
+            `Process restarted: ${process.name} (PID: ${child.pid})`,
+            {
+              id: process.id,
+              pid: child.pid,
+            },
+          );
 
           // Continue monitoring
           this.monitorProcess(process);
@@ -234,7 +239,10 @@ class Kernel {
   /**
    * Kill a managed process
    */
-  async killProcess(id: string, signal: Deno.Signal = "SIGTERM"): Promise<void> {
+  async killProcess(
+    id: string,
+    signal: Deno.Signal = "SIGTERM",
+  ): Promise<void> {
     const process = this.processes.get(id);
     if (!process) {
       throw new Error(`Process with id '${id}' not found`);
@@ -293,7 +301,10 @@ class Kernel {
     ConsoleStyler.logInfo(`[${timestamp}] [KERNEL] ${message}`, metadata);
   }
 
-  private logSuccess(message: string, metadata?: Record<string, unknown>): void {
+  private logSuccess(
+    message: string,
+    metadata?: Record<string, unknown>,
+  ): void {
     const timestamp = new Date().toISOString();
     ConsoleStyler.logSuccess(`[${timestamp}] [KERNEL] ${message}`, metadata);
   }
@@ -361,7 +372,9 @@ class Kernel {
    */
   private async shutdown(signal: string): Promise<void> {
     this.shutdownInProgress = true;
-    ConsoleStyler.logWarning(`Received ${signal}, initiating graceful shutdown...`);
+    ConsoleStyler.logWarning(
+      `Received ${signal}, initiating graceful shutdown...`,
+    );
 
     // Kill all managed processes
     const killPromises: Promise<void>[] = [];
