@@ -10,6 +10,8 @@ export { ConfigBuilder } from "./core/config.ts";
 export { ColorSystem } from "./core/colors.ts";
 export { Formatter } from "./core/formatter.ts";
 export { ConsoleStyler } from "./core/console.ts";
+export { RemoteLogger, commonDestinations, createRemoteLogger } from "./core/remote-logger.ts";
+export type { RemoteDestination, RemoteLoggerConfig } from "./core/remote-logger.ts";
 
 // Types
 export type { LogEntry, LogLevel, LogOutput, Plugin, StylerConfig, Theme } from "./core/config.ts";

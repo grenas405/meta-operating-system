@@ -5,24 +5,27 @@
  *
  * Unix Philosophy Implementation:
  * - Do one thing well: Setup MariaDB database with multi-tenant architecture
- * - Accept text input: Database configuration parameters
+ * - Accept text input: Database configuration parameters via CLI args
  * - Produce text output: Setup results and connection instructions
  * - Filter and transform: Take config → create database structure
  * - Composable: Can be scripted, automated, tested independently
  *
  * Security-First Approach:
  * - Unix socket authentication (no passwords over network)
+ * - Sudoless authentication when properly configured
  * - Minimal privilege principle for database users
  * - Secure by default configuration
  * - Auditable SQL execution
  *
- * Zero-Configuration Philosophy:
+ * Automation-First Philosophy:
  * - Sensible defaults for all options
- * - Interactive prompts with smart defaults
- * - Self-documenting output
+ * - No interactive prompts - fully automated
+ * - Override via CLI arguments when needed
+ * - Self-documenting output with console-styler
  */
 
 import { join } from "https://deno.land/std@0.224.0/path/mod.ts";
+import { Logger, BoxRenderer, BannerRenderer } from "../../console-styler/mod.ts";
 
 // Types for better developer experience
 interface CLIContext {
@@ -46,7 +49,7 @@ interface DbOptions {
   dbName?: string;
   dbUser?: string;
   dbPassword?: string;
-  skipPrompts?: boolean;
+  skipPrompts?: boolean; // Deprecated: No prompts anymore, kept for backwards compatibility
   testOnly?: boolean;
   useSocket?: boolean;
 }
@@ -61,16 +64,9 @@ const DEFAULT_DB_CONFIG = {
   useSocket: true,
 };
 
-// ANSI color codes for Unix-style terminal output
-const Colors = {
-  RED: "\x1b[31m",
-  GREEN: "\x1b[32m",
-  YELLOW: "\x1b[33m",
-  BLUE: "\x1b[34m",
-  CYAN: "\x1b[36m",
-  RESET: "\x1b[0m",
-  BOLD: "\x1b[1m",
-};
+// Initialize console-styler logger
+const logger = new Logger();
+const boxRenderer = new BoxRenderer();
 
 /**
  * Main db command handler
@@ -81,33 +77,27 @@ export async function dbCommand(
   context: CLIContext,
 ): Promise<number> {
   try {
-    console.log(`
-🗄️  Deno Genesis Database Setup
-
-Unix Philosophy + Security-First = Production-Ready Database
-Setting up MariaDB with multi-tenant architecture...
-`);
+    // Show banner
+    logger.info("🗄️  Deno Genesis Database Setup\n");
+    logger.info("Unix Philosophy + Security-First = Production-Ready Database");
+    logger.info("Setting up MariaDB with multi-tenant architecture...\n");
 
     // Parse command line arguments
     const options = parseDbArgs(args);
 
-    // Interactive prompts for missing configuration
-    const dbConfig = await gatherDatabaseConfiguration(options, context);
+    // Use default configuration (no prompts)
+    const dbConfig = gatherDatabaseConfiguration(options);
 
     // Validate configuration
     const validationResult = validateDatabaseConfig(dbConfig);
     if (!validationResult.valid) {
-      console.error(
-        `${Colors.RED}❌ Configuration validation failed: ${validationResult.error}${Colors.RESET}`,
-      );
+      logger.error(`❌ Configuration validation failed: ${validationResult.error}`);
       return 1;
     }
 
     // Test-only mode
     if (options.testOnly) {
-      console.log(
-        `${Colors.CYAN}Testing database connection...${Colors.RESET}`,
-      );
+      logger.info("Testing database connection...");
       const testResult = await testDatabaseConnection(dbConfig, context);
       return testResult ? 0 : 1;
     }
@@ -115,45 +105,41 @@ Setting up MariaDB with multi-tenant architecture...
     // Execute database setup
     await executeDatabaseSetup(dbConfig, context);
 
-    // Success output following Unix principles
-    console.log(`
-${Colors.GREEN}✅ Database setup completed successfully!${Colors.RESET}
+    // Success output with styled box
+    logger.success("✅ Database setup completed successfully!\n");
 
-Database Configuration:
-  📊 Database: ${dbConfig.name}
-  👤 User: ${dbConfig.user}
-  🔌 Connection: ${
-      dbConfig.useSocket
-        ? `Unix Socket (${dbConfig.socket})`
-        : `TCP (${dbConfig.host})`
-    }
+    boxRenderer.render({
+      title: "Database Configuration",
+      content: `📊 Database: ${dbConfig.name}
+👤 User: ${dbConfig.user}
+🔌 Connection: ${dbConfig.useSocket ? `Unix Socket (${dbConfig.socket})` : `TCP (${dbConfig.host})`}`,
+      style: "single",
+      padding: 1,
+    });
 
-Environment Variables:
-  ${Colors.CYAN}DB_HOST=${Colors.RESET}${dbConfig.host}
-  ${Colors.CYAN}DB_USER=${Colors.RESET}${dbConfig.user}
-  ${Colors.CYAN}DB_PASSWORD=${Colors.RESET}${dbConfig.password}
-  ${Colors.CYAN}DB_NAME=${Colors.RESET}${dbConfig.name}
+    console.log("\nEnvironment Variables:");
+    logger.info(`  DB_HOST=${dbConfig.host}`);
+    logger.info(`  DB_USER=${dbConfig.user}`);
+    logger.info(`  DB_PASSWORD=${dbConfig.password}`);
+    logger.info(`  DB_NAME=${dbConfig.name}`);
 
-Next Steps:
-  1. Update your site .env files with these database credentials
-  2. Test connection: genesis db --test-only
-  3. Start your Deno Genesis services
+    console.log("\nNext Steps:");
+    console.log("  1. Update your site .env files with these database credentials");
+    console.log("  2. Test connection: genesis db --test-only");
+    console.log("  3. Start your Deno Genesis services");
 
-${Colors.YELLOW}🔒 Security Notes:${Colors.RESET}
-  • Using Unix socket authentication for optimal security
-  • Database user has minimal required privileges
-  • Change default password in production environments
-  • Review database schema in dg-config/database/
+    console.log("\n🔒 Security Notes:");
+    console.log("  • Using Unix socket authentication for optimal security");
+    console.log("  • Database user has minimal required privileges");
+    console.log("  • Change default password in production environments");
+    console.log("  • Review database schema in dg-config/database/");
 
-${Colors.CYAN}📖 Docs: See docs/06-backend/database-patterns.md${Colors.RESET}
-`);
+    logger.info("\n📖 Docs: See docs/06-backend/database-patterns.md");
 
     return 0;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(
-      `${Colors.RED}❌ Database setup failed: ${errorMessage}${Colors.RESET}`,
-    );
+    logger.error(`❌ Database setup failed: ${errorMessage}`);
     if (context.verbose && error instanceof Error) {
       console.error(error.stack);
     }
@@ -204,87 +190,29 @@ function parseDbArgs(args: string[]): DbOptions {
 }
 
 /**
- * Interactive configuration gathering
- * Unix principle: Accept input from user, provide sensible defaults
+ * Gather database configuration with sensible defaults
+ * Automated approach - no prompts, uses defaults unless overridden via CLI args
  */
-async function gatherDatabaseConfiguration(
+function gatherDatabaseConfiguration(
   options: DbOptions,
-  context: CLIContext,
-): Promise<DatabaseConfig> {
-  console.log(`${Colors.BOLD}Database Configuration${Colors.RESET}`);
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
-
+): DatabaseConfig {
   const config: DatabaseConfig = {
-    name: options.dbName || await promptForDbName(),
-    user: options.dbUser || await promptForDbUser(),
-    password: options.dbPassword || await promptForDbPassword(),
+    name: options.dbName || DEFAULT_DB_CONFIG.name,
+    user: options.dbUser || DEFAULT_DB_CONFIG.user,
+    password: options.dbPassword || DEFAULT_DB_CONFIG.password,
     host: DEFAULT_DB_CONFIG.host,
     socket: DEFAULT_DB_CONFIG.socket,
     useSocket: options.useSocket ?? DEFAULT_DB_CONFIG.useSocket,
   };
 
+  logger.debug("Using configuration:");
+  logger.debug(`  Database: ${config.name}`);
+  logger.debug(`  User: ${config.user}`);
+  logger.debug(`  Connection: ${config.useSocket ? "Unix Socket" : "TCP"}`);
+
   return config;
 }
 
-/**
- * Prompt for database name with validation
- */
-async function promptForDbName(): Promise<string> {
-  console.log(
-    `${Colors.CYAN}Database name${Colors.RESET} [${DEFAULT_DB_CONFIG.name}]:`,
-  );
-  const input = prompt("  >") || "";
-
-  if (!input.trim()) {
-    return DEFAULT_DB_CONFIG.name;
-  }
-
-  // Validate database name
-  const dbNameRegex = /^[a-zA-Z0-9_]+$/;
-  if (!dbNameRegex.test(input)) {
-    console.log(
-      `${Colors.RED}❌ Invalid database name. Use only letters, numbers, and underscores.${Colors.RESET}`,
-    );
-    return await promptForDbName();
-  }
-
-  return input.trim();
-}
-
-/**
- * Prompt for database user with validation
- */
-async function promptForDbUser(): Promise<string> {
-  console.log(
-    `\n${Colors.CYAN}Database user${Colors.RESET} [${DEFAULT_DB_CONFIG.user}]:`,
-  );
-  const input = prompt("  >") || "";
-
-  if (!input.trim()) {
-    return DEFAULT_DB_CONFIG.user;
-  }
-
-  return input.trim();
-}
-
-/**
- * Prompt for database password
- */
-async function promptForDbPassword(): Promise<string> {
-  console.log(
-    `\n${Colors.CYAN}Database password${Colors.RESET} [${DEFAULT_DB_CONFIG.password}]:`,
-  );
-  console.log(
-    `${Colors.YELLOW}  Note: Visible for security awareness. Use strong passwords in production.${Colors.RESET}`,
-  );
-  const input = prompt("  >") || "";
-
-  if (!input.trim()) {
-    return DEFAULT_DB_CONFIG.password;
-  }
-
-  return input.trim();
-}
 
 /**
  * Validate database configuration
@@ -328,13 +256,13 @@ async function executeDatabaseSetup(
   config: DatabaseConfig,
   context: CLIContext,
 ): Promise<void> {
-  console.log(`${Colors.CYAN}Setting up database...${Colors.RESET}\n`);
+  logger.info("Setting up database...\n");
 
   // Check if MariaDB is installed and running
   await checkMariaDBStatus(context);
 
   // Test root connection
-  console.log(`${Colors.CYAN}Testing MariaDB root access...${Colors.RESET}`);
+  logger.info("Testing MariaDB root access...");
   const rootAccess = await testRootAccess(context);
   if (!rootAccess) {
     throw new Error(
@@ -343,26 +271,22 @@ async function executeDatabaseSetup(
   }
 
   // Create database
-  console.log(`${Colors.CYAN}Creating database: ${config.name}${Colors.RESET}`);
+  logger.info(`Creating database: ${config.name}`);
   await createDatabase(config, context);
 
   // Create database user
-  console.log(
-    `${Colors.CYAN}Creating database user: ${config.user}${Colors.RESET}`,
-  );
+  logger.info(`Creating database user: ${config.user}`);
   await createDatabaseUser(config, context);
 
   // Create tables
-  console.log(`${Colors.CYAN}Creating database schema...${Colors.RESET}`);
+  logger.info("Creating database schema...");
   await createDatabaseSchema(config, context);
 
   // Test new user connection
-  console.log(`${Colors.CYAN}Testing database connection...${Colors.RESET}`);
+  logger.info("Testing database connection...");
   const connectionTest = await testDatabaseConnection(config, context);
   if (!connectionTest) {
-    console.log(
-      `${Colors.YELLOW}⚠️  Warning: Connection test failed, but setup may have succeeded.${Colors.RESET}`,
-    );
+    logger.warn("⚠️  Warning: Connection test failed, but setup may have succeeded.");
   }
 }
 
@@ -381,43 +305,25 @@ async function checkMariaDBStatus(context: CLIContext): Promise<void> {
     const { code } = await cmd.output();
 
     if (code !== 0) {
-      console.log(
-        `${Colors.YELLOW}⚠️  MariaDB service may not be running${Colors.RESET}`,
-      );
-      console.log(`   Try: sudo systemctl start mariadb`);
+      logger.warn("⚠️  MariaDB service may not be running");
+      logger.info("   Try: sudo systemctl start mariadb");
     } else {
-      console.log(`${Colors.GREEN}✓ MariaDB service is running${Colors.RESET}`);
+      logger.success("✓ MariaDB service is running");
     }
   } catch (error) {
     if (context.verbose) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.log(
-        `${Colors.YELLOW}Note: Could not check MariaDB status: ${errorMessage}${Colors.RESET}`,
-      );
+      logger.warn(`Note: Could not check MariaDB status: ${errorMessage}`);
     }
   }
 }
 
 /**
- * Test root access to MariaDB
+ * Test root access to MariaDB using Unix socket (sudoless when properly configured)
  */
 async function testRootAccess(context: CLIContext): Promise<boolean> {
   try {
-    // Try Unix socket authentication first (most secure)
-    const socketCmd = new Deno.Command("sudo", {
-      args: ["mysql", "-u", "root", "--execute", "SELECT 1;"],
-      stdout: "piped",
-      stderr: "piped",
-    });
-
-    const { code } = await socketCmd.output();
-
-    if (code === 0) {
-      console.log(`${Colors.GREEN}✓ Connected via Unix socket${Colors.RESET}`);
-      return true;
-    }
-
-    // Try without sudo (user may already have access)
+    // Try direct Unix socket authentication first (sudoless - ideal)
     const directCmd = new Deno.Command("mysql", {
       args: ["-u", "root", "--execute", "SELECT 1;"],
       stdout: "piped",
@@ -427,7 +333,22 @@ async function testRootAccess(context: CLIContext): Promise<boolean> {
     const { code: directCode } = await directCmd.output();
 
     if (directCode === 0) {
-      console.log(`${Colors.GREEN}✓ Connected directly${Colors.RESET}`);
+      logger.success("✓ Connected via Unix socket (sudoless)");
+      return true;
+    }
+
+    // Try with sudo as fallback (Unix socket with sudo)
+    const socketCmd = new Deno.Command("sudo", {
+      args: ["mysql", "-u", "root", "--execute", "SELECT 1;"],
+      stdout: "piped",
+      stderr: "piped",
+    });
+
+    const { code } = await socketCmd.output();
+
+    if (code === 0) {
+      logger.success("✓ Connected via Unix socket (with sudo)");
+      logger.info("💡 Tip: Configure user in mysql group for sudoless access");
       return true;
     }
 
@@ -435,7 +356,7 @@ async function testRootAccess(context: CLIContext): Promise<boolean> {
   } catch (error) {
     if (context.verbose) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(`Root access test error: ${errorMessage}`);
+      logger.error(`Root access test error: ${errorMessage}`);
     }
     return false;
   }
@@ -451,9 +372,7 @@ async function createDatabase(
   const sql = `CREATE DATABASE IF NOT EXISTS ${config.name};`;
 
   await executeSQLAsRoot(sql, context);
-  console.log(
-    `${Colors.GREEN}✓ Database created: ${config.name}${Colors.RESET}`,
-  );
+  logger.success(`✓ Database created: ${config.name}`);
 }
 
 /**
@@ -470,9 +389,7 @@ async function createDatabaseUser(
   `;
 
   await executeSQLAsRoot(sql, context);
-  console.log(
-    `${Colors.GREEN}✓ Database user created: ${config.user}${Colors.RESET}`,
-  );
+  logger.success(`✓ Database user created: ${config.user}`);
 }
 
 /**
@@ -567,20 +484,20 @@ async function createDatabaseSchema(
   `;
 
   await executeSQLAsRoot(sql, context);
-  console.log(`${Colors.GREEN}✓ Database schema created${Colors.RESET}`);
+  logger.success("✓ Database schema created");
 }
 
 /**
- * Execute SQL as root user
+ * Execute SQL as root user via Unix socket (prefers sudoless)
  */
 async function executeSQLAsRoot(
   sql: string,
   context: CLIContext,
 ): Promise<void> {
-  // Try with sudo first (Unix socket)
+  // Try without sudo first (sudoless Unix socket - ideal)
   try {
-    const cmd = new Deno.Command("sudo", {
-      args: ["mysql", "-u", "root", "--execute", sql],
+    const cmd = new Deno.Command("mysql", {
+      args: ["-u", "root", "--execute", sql],
       stdout: context.verbose ? "inherit" : "piped",
       stderr: context.verbose ? "inherit" : "piped",
     });
@@ -591,12 +508,12 @@ async function executeSQLAsRoot(
       return;
     }
   } catch (error) {
-    // Fall through to try without sudo
+    // Fall through to try with sudo
   }
 
-  // Try without sudo
-  const cmd = new Deno.Command("mysql", {
-    args: ["-u", "root", "--execute", sql],
+  // Try with sudo as fallback (Unix socket with sudo)
+  const cmd = new Deno.Command("sudo", {
+    args: ["mysql", "-u", "root", "--execute", sql],
     stdout: context.verbose ? "inherit" : "piped",
     stderr: context.verbose ? "inherit" : "piped",
   });
@@ -609,7 +526,7 @@ async function executeSQLAsRoot(
 }
 
 /**
- * Test database connection with configured user
+ * Test database connection with configured user via Unix socket
  */
 async function testDatabaseConnection(
   config: DatabaseConfig,
@@ -634,20 +551,16 @@ async function testDatabaseConnection(
     const { code } = await cmd.output();
 
     if (code === 0) {
-      console.log(
-        `${Colors.GREEN}✓ Database connection test successful${Colors.RESET}`,
-      );
+      logger.success("✓ Database connection test successful");
       return true;
     } else {
-      console.log(
-        `${Colors.RED}✗ Database connection test failed${Colors.RESET}`,
-      );
+      logger.error("✗ Database connection test failed");
       return false;
     }
   } catch (error) {
     if (context.verbose) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(`Connection test error: ${errorMessage}`);
+      logger.error(`Connection test error: ${errorMessage}`);
     }
     return false;
   }
@@ -658,41 +571,38 @@ async function testDatabaseConnection(
  */
 export function showDbHelp(): void {
   console.log(`
-${Colors.BOLD}🗄️  Deno Genesis Database Command - MariaDB Setup${Colors.RESET}
+🗄️  Deno Genesis Database Command - MariaDB Setup
 
 USAGE:
   genesis db [options]
 
 DESCRIPTION:
-  Setup MariaDB database with multi-tenant architecture for Deno Genesis sites.
+  Automated MariaDB database setup with multi-tenant architecture.
   Uses Unix socket authentication for optimal security and performance.
+  No prompts - fully automated with sensible defaults.
 
 OPTIONS:
   --name, --db-name NAME      Database name (default: universal_db)
   --user, --db-user USER      Database user (default: webadmin)
   --password, --db-password   Database password (default: Password123!)
   -t, --test-only            Test database connection only
-  -y, --skip-prompts         Skip interactive prompts and use defaults
   --use-socket               Use Unix socket connection (default)
   --no-socket                Use TCP connection instead
   -v, --verbose              Enable verbose output
   -h, --help                 Show this help message
 
 EXAMPLES:
-  # Interactive setup with defaults
+  # Automated setup with defaults
   genesis db
-  
+
   # Setup with custom database name
   genesis db --name my_database
-  
+
   # Setup with custom credentials
   genesis db --user myuser --password mypassword
-  
+
   # Test existing connection
   genesis db --test-only
-  
-  # Non-interactive setup
-  genesis db --skip-prompts
 
 DATABASE STRUCTURE:
   Multi-tenant architecture with site_key isolation:
@@ -707,8 +617,8 @@ CONNECTION:
   Uses Unix socket (/var/run/mysqld/mysqld.sock) by default for:
   • Enhanced security (no network exposure)
   • Better performance (no TCP overhead)
-  • Simplified authentication
-  
+  • Sudoless authentication (when user in mysql group)
+
   Environment variables for your sites:
   • DB_HOST=localhost
   • DB_USER=webadmin
@@ -717,14 +627,22 @@ CONNECTION:
 
 REQUIREMENTS:
   • MariaDB server installed and running
-  • Root access to MariaDB (for setup)
-  • sudo privileges (for Unix socket authentication)
+  • Root access to MariaDB via Unix socket
+  • Optional: User in mysql group for sudoless access
 
 SECURITY:
-  • Uses Unix socket authentication when possible
+  • Uses Unix socket authentication (sudoless when configured)
   • Minimal privilege principle for database users
   • Multi-tenant isolation via site_key
   • Change default passwords in production!
+
+SUDOLESS SETUP:
+  For true sudoless authentication, add your user to mysql group:
+
+  sudo usermod -aG mysql $USER
+  newgrp mysql
+
+  Then configure MariaDB to allow socket authentication.
 
 PHILOSOPHY:
   This command follows the Unix Philosophy:
@@ -732,6 +650,7 @@ PHILOSOPHY:
   - Composable: Output can be tested, validated
   - Explicit: All operations are clearly logged
   - Secure: Security-first by default
+  - Automated: No prompts, sensible defaults
 
 For more information, see docs/06-backend/database-patterns.md
 `);

@@ -1,15 +1,68 @@
 /**
- * Futuristic REPL Shell for Meta-OS
- * Advanced interactive command-line interface with modern features
+ * META-OS REPL - Futuristic Process Management Interface
+ * ========================================================
+ *
+ * "Where Unix Philosophy meets Cyberpunk Aesthetics"
+ *
+ * A revolutionary command-line interface for the Meta Operating System Kernel
+ * that combines timeless Unix principles with modern developer experience.
+ *
+ * Philosophy:
+ * - Do one thing well: Manage kernel processes and system operations
+ * - Text-based interface: Terminal-native with stunning visuals
+ * - Composable: Every command is a building block
+ * - Self-documenting: The system explains itself
  */
 
 import { ConsoleStyler } from "./console-styler/mod.ts";
 import type { Kernel } from "../kernel.ts";
 import { manCommand } from "./man.ts";
 
+// =============================================================================
+// CYBERPUNK COLOR PALETTE
+// =============================================================================
+
+const colors = {
+  // Neon primary colors (RGB)
+  neonCyan: "\x1b[38;2;0;255;255m",
+  neonPink: "\x1b[38;2;255;0;255m",
+  neonGreen: "\x1b[38;2;0;255;136m",
+  electricBlue: "\x1b[38;2;0;128;255m",
+  plasma: "\x1b[38;2;138;43;226m",
+
+  // Accent colors
+  gold: "\x1b[38;2;255;215;0m",
+  orange: "\x1b[38;2;255;165;0m",
+  red: "\x1b[38;2;255;0;80m",
+
+  // UI elements
+  dim: "\x1b[2m",
+  bright: "\x1b[1m",
+  reset: "\x1b[0m",
+
+  // Standard colors for compatibility
+  cyan: "\x1b[36m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  magenta: "\x1b[35m",
+  gray: "\x1b[90m",
+
+  // Backgrounds
+  bgBlue: "\x1b[44m",
+  bgGreen: "\x1b[42m",
+  bgRed: "\x1b[41m",
+  bgDark: "\x1b[48;2;10;10;20m",
+};
+
+// =============================================================================
+// INTERFACE TYPES
+// =============================================================================
+
 interface ReplCommand {
   name: string;
   description: string;
+  category: "process" | "monitoring" | "system" | "development" | "information";
   aliases?: string[];
   usage?: string;
   handler: (args: string[], kernel: Kernel) => Promise<void> | void;
@@ -21,6 +74,10 @@ interface InputState {
   historyIndex: number;
   suggestionIndex: number;
 }
+
+// =============================================================================
+// META REPL CLASS
+// =============================================================================
 
 export class MetaRepl {
   private kernel: Kernel;
@@ -35,41 +92,26 @@ export class MetaRepl {
   };
   private statusUpdateInterval?: number;
   private showStatusBar = true;
+  private commandCount = 0;
 
   constructor(kernel: Kernel) {
     this.kernel = kernel;
     this.registerDefaultCommands();
   }
 
+  // =============================================================================
+  // COMMAND REGISTRATION
+  // =============================================================================
+
   /**
    * Register default built-in commands
    */
   private registerDefaultCommands(): void {
-    // Help command
-    this.registerCommand({
-      name: "help",
-      description: "Display available commands",
-      aliases: ["h", "?"],
-      handler: () => {
-        ConsoleStyler.logInfo("\nAvailable commands:");
-        // Use a Set to track unique commands by name to avoid duplicates
-        const seen = new Set<string>();
-        const commands = Array.from(this.commands.values());
-        for (const cmd of commands) {
-          if (!seen.has(cmd.name)) {
-            seen.add(cmd.name);
-            const aliases = cmd.aliases ? ` (${cmd.aliases.join(", ")})` : "";
-            ConsoleStyler.logInfo(`  ${cmd.name}${aliases} - ${cmd.description}`);
-          }
-        }
-        ConsoleStyler.logInfo("");
-      },
-    });
-
-    // Process list command
+    // Process Management Commands
     this.registerCommand({
       name: "ps",
-      description: "List all managed processes",
+      description: "List all managed processes with detailed status",
+      category: "process",
       aliases: ["processes", "list"],
       handler: () => {
         const processes = this.kernel.listProcesses();
@@ -78,67 +120,45 @@ export class MetaRepl {
           return;
         }
 
-        ConsoleStyler.logInfo("\nManaged Processes:");
-        ConsoleStyler.logInfo(
-          "ID".padEnd(20) +
-            "NAME".padEnd(20) +
-            "PID".padEnd(10) +
-            "STATUS".padEnd(12) +
-            "RESTARTS",
+        console.log(`\n${colors.neonCyan}${colors.bright}═══ MANAGED PROCESSES ═══${colors.reset}\n`);
+        console.log(
+          `${colors.bright}${"ID".padEnd(20)}${"NAME".padEnd(20)}${"PID".padEnd(10)}${"STATUS".padEnd(12)}${"RESTARTS"}${colors.reset}`,
         );
-        ConsoleStyler.logInfo("-".repeat(80));
+        console.log(`${colors.dim}${"─".repeat(80)}${colors.reset}`);
 
         for (const proc of processes) {
-          ConsoleStyler.logInfo(
-            proc.id.padEnd(20) +
-              proc.name.padEnd(20) +
-              String(proc.pid || "N/A").padEnd(10) +
-              proc.status.padEnd(12) +
-              String(proc.restartCount),
+          const statusColor =
+            proc.status === "running" ? colors.neonGreen :
+            proc.status === "failed" ? colors.red :
+            proc.status === "starting" ? colors.orange :
+            colors.gray;
+
+          console.log(
+            `${proc.id.padEnd(20)}${proc.name.padEnd(20)}${String(proc.pid || "N/A").padEnd(10)}${statusColor}${proc.status.padEnd(12)}${colors.reset}${String(proc.restartCount)}`,
           );
         }
-        ConsoleStyler.logInfo("");
+        console.log();
       },
     });
 
-    // System info command
-    this.registerCommand({
-      name: "info",
-      description: "Display kernel system information",
-      aliases: ["sysinfo", "status"],
-      handler: () => {
-        const info = this.kernel.getSystemInfo();
-        const uptime = this.kernel.getUptime();
-
-        ConsoleStyler.logInfo("\nKernel System Information:");
-        ConsoleStyler.logInfo(`  Version:    ${info.version}`);
-        ConsoleStyler.logInfo(`  PID:        ${info.pid}`);
-        ConsoleStyler.logInfo(`  Platform:   ${info.platform}`);
-        ConsoleStyler.logInfo(`  Uptime:     ${this.formatUptime(uptime)}`);
-        ConsoleStyler.logInfo(
-          `  Start Time: ${new Date(info.startTime).toISOString()}`,
-        );
-        ConsoleStyler.logInfo("");
-      },
-    });
-
-    // Kill process command
     this.registerCommand({
       name: "kill",
       description: "Kill a managed process by ID",
+      category: "process",
+      usage: "kill <process-id>",
       handler: async (args) => {
         if (args.length === 0) {
-          ConsoleStyler.logError("Usage: kill <process-id>");
+          console.log(`${colors.red}✗ Usage:${colors.reset} kill <process-id>`);
           return;
         }
 
         const processId = args[0];
         try {
           await this.kernel.killProcess(processId);
-          ConsoleStyler.logSuccess(`Process ${processId} killed successfully`);
+          console.log(`${colors.neonGreen}✓${colors.reset} Process ${colors.bright}${processId}${colors.reset} killed successfully`);
         } catch (error) {
-          ConsoleStyler.logError(
-            `Failed to kill process: ${
+          console.log(
+            `${colors.red}✗ Failed to kill process:${colors.reset} ${
               error instanceof Error ? error.message : String(error)
             }`,
           );
@@ -146,73 +166,24 @@ export class MetaRepl {
       },
     });
 
-    // History command
     this.registerCommand({
-      name: "history",
-      description: "Show command history",
-      handler: () => {
-        if (this.history.length === 0) {
-          ConsoleStyler.logWarning("No command history");
-          return;
-        }
-
-        ConsoleStyler.logInfo("\nCommand History:");
-        this.history.forEach((cmd, index) => {
-          ConsoleStyler.logInfo(`  ${index + 1}: ${cmd}`);
-        });
-        ConsoleStyler.logInfo("");
-      },
-    });
-
-    // Clear screen command
-    this.registerCommand({
-      name: "clear",
-      description: "Clear the screen",
-      aliases: ["cls"],
-      handler: () => {
-        console.clear();
-      },
-    });
-
-    // Eval command (evaluate JavaScript)
-    this.registerCommand({
-      name: "eval",
-      description: "Evaluate JavaScript expression",
-      aliases: ["js"],
-      handler: (args) => {
-        const code = args.join(" ");
-        if (!code) {
-          ConsoleStyler.logError("Usage: eval <javascript-code>");
-          return;
-        }
-
-        try {
-          // Make kernel available in eval context
-          const result = eval(`(function(kernel) { return ${code}; })`)(
-            this.kernel,
-          );
-          ConsoleStyler.logSuccess("Result:");
-          ConsoleStyler.logInfo(result);
-        } catch (error) {
-          ConsoleStyler.logError(
-            `Evaluation error: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          );
-        }
-      },
-    });
-
-    // Man command (Genesis manual system)
-    this.registerCommand({
-      name: "man",
-      description: "Display Genesis manual pages",
+      name: "restart",
+      description: "Restart a managed process by ID",
+      category: "process",
+      usage: "restart <process-id>",
       handler: async (args) => {
+        if (args.length === 0) {
+          console.log(`${colors.red}✗ Usage:${colors.reset} restart <process-id>`);
+          return;
+        }
+
+        const processId = args[0];
         try {
-          await manCommand(args);
+          await this.kernel.killProcess(processId);
+          console.log(`${colors.neonGreen}✓${colors.reset} Process ${colors.bright}${processId}${colors.reset} will auto-restart...`);
         } catch (error) {
-          ConsoleStyler.logError(
-            `Manual error: ${
+          console.log(
+            `${colors.red}✗ Failed to restart process:${colors.reset} ${
               error instanceof Error ? error.message : String(error)
             }`,
           );
@@ -220,69 +191,199 @@ export class MetaRepl {
       },
     });
 
-    // Exit command
     this.registerCommand({
-      name: "exit",
-      description: "Exit the REPL (kernel continues running)",
-      aliases: ["quit", "q"],
-      handler: () => {
-        const kernelPid = this.kernel.getSystemInfo().pid;
-        ConsoleStyler.logWarning("Exiting REPL... (Kernel continues running)");
-        ConsoleStyler.logInfo(`To re-enter: Send signal to PID ${kernelPid}`);
-        ConsoleStyler.logInfo("To stop kernel: Press CTRL+C");
-        this.running = false;
+      name: "inspect",
+      description: "Detailed inspection of a process",
+      category: "process",
+      aliases: ["describe", "show"],
+      usage: "inspect <process-id>",
+      handler: (args) => {
+        if (args.length === 0) {
+          console.log(`${colors.red}✗ Usage:${colors.reset} inspect <process-id>`);
+          return;
+        }
+
+        const processId = args[0];
+        const process = this.kernel.getProcessStatus(processId);
+        if (!process) {
+          console.log(`${colors.red}✗ Process not found:${colors.reset} ${processId}`);
+          return;
+        }
+
+        const uptime = Math.floor((Date.now() - process.startTime) / 1000);
+
+        console.log(`\n${colors.neonCyan}╔═══════════════════════════════════════════════╗${colors.reset}`);
+        console.log(`${colors.neonCyan}║${colors.reset}    ${colors.bright}Process Inspection Report${colors.reset}             ${colors.neonCyan}║${colors.reset}`);
+        console.log(`${colors.neonCyan}╚═══════════════════════════════════════════════╝${colors.reset}\n`);
+        console.log(`${colors.neonPink}▸${colors.reset} ${colors.bright}ID:${colors.reset}           ${process.id}`);
+        console.log(`${colors.neonPink}▸${colors.reset} ${colors.bright}Name:${colors.reset}         ${process.name}`);
+        console.log(`${colors.neonPink}▸${colors.reset} ${colors.bright}PID:${colors.reset}          ${process.pid || "N/A"}`);
+        console.log(`${colors.neonPink}▸${colors.reset} ${colors.bright}Status:${colors.reset}       ${process.status}`);
+        console.log(`${colors.neonPink}▸${colors.reset} ${colors.bright}Auto-Restart:${colors.reset} ${process.autoRestart ? "Enabled" : "Disabled"}`);
+        console.log(`${colors.neonPink}▸${colors.reset} ${colors.bright}Restarts:${colors.reset}     ${process.restartCount}`);
+        console.log(`${colors.neonPink}▸${colors.reset} ${colors.bright}Started:${colors.reset}      ${new Date(process.startTime).toISOString()}`);
+        console.log(`${colors.neonPink}▸${colors.reset} ${colors.bright}Uptime:${colors.reset}       ${this.formatUptime(uptime)}\n`);
       },
     });
 
-    // Shutdown command
     this.registerCommand({
-      name: "shutdown",
-      description: "Shutdown the kernel and all processes",
-      handler: () => {
-        ConsoleStyler.logWarning("Shutting down kernel...");
-        Deno.exit(0);
+      name: "logs",
+      description: "View logs for a specific process",
+      category: "process",
+      usage: "logs <process-id>",
+      handler: (args) => {
+        if (args.length === 0) {
+          console.log(`${colors.red}✗ Usage:${colors.reset} logs <process-id>`);
+          return;
+        }
+
+        const processId = args[0];
+        const process = this.kernel.getProcessStatus(processId);
+        if (!process) {
+          console.log(`${colors.red}✗ Process not found:${colors.reset} ${processId}`);
+          return;
+        }
+
+        console.log(`\n${colors.neonCyan}${colors.bright}═══ LOGS: ${process.name} ═══${colors.reset}\n`);
+        console.log(`${colors.dim}Process ID:${colors.reset}   ${processId}`);
+        console.log(`${colors.dim}PID:${colors.reset}          ${process.pid || "N/A"}`);
+        console.log(`${colors.dim}Status:${colors.reset}       ${process.status}`);
+        console.log(`${colors.dim}Start Time:${colors.reset}   ${new Date(process.startTime).toISOString()}`);
+        console.log(`${colors.dim}Restarts:${colors.reset}     ${process.restartCount}\n`);
       },
     });
 
-    // Monitor command - live process monitoring
+    // Monitoring Commands
     this.registerCommand({
       name: "monitor",
       description: "Real-time process monitoring dashboard",
+      category: "monitoring",
       aliases: ["mon", "top"],
       handler: async () => {
         await this.showProcessMonitor();
       },
     });
 
-    // Status bar toggle
     this.registerCommand({
       name: "statusbar",
       description: "Toggle status bar display",
+      category: "monitoring",
       handler: () => {
         this.showStatusBar = !this.showStatusBar;
-        ConsoleStyler.logSuccess(
-          `Status bar ${this.showStatusBar ? "enabled" : "disabled"}`,
+        console.log(
+          `${colors.neonGreen}✓${colors.reset} Status bar ${this.showStatusBar ? "enabled" : "disabled"}`,
         );
       },
     });
 
-    // Restart process command
+    // System Commands
     this.registerCommand({
-      name: "restart",
-      description: "Restart a managed process by ID",
-      handler: async (args) => {
-        if (args.length === 0) {
-          ConsoleStyler.logError("Usage: restart <process-id>");
+      name: "info",
+      description: "Display kernel system information",
+      category: "system",
+      aliases: ["sysinfo", "status"],
+      handler: () => {
+        const info = this.kernel.getSystemInfo();
+        const uptime = this.kernel.getUptime();
+
+        console.log(`\n${colors.neonCyan}╭─── ${colors.bright}KERNEL SYSTEM INFO${colors.reset}${colors.neonCyan} ───╮${colors.reset}\n`);
+        console.log(`  ${colors.neonGreen}▸${colors.reset} ${colors.bright}Version:${colors.reset}    ${colors.dim}${info.version}${colors.reset}`);
+        console.log(`  ${colors.neonGreen}▸${colors.reset} ${colors.bright}PID:${colors.reset}        ${colors.dim}${info.pid}${colors.reset}`);
+        console.log(`  ${colors.neonGreen}▸${colors.reset} ${colors.bright}Platform:${colors.reset}   ${colors.dim}${info.platform}${colors.reset}`);
+        console.log(`  ${colors.neonGreen}▸${colors.reset} ${colors.bright}Uptime:${colors.reset}     ${colors.dim}${this.formatUptime(uptime)}${colors.reset}`);
+        console.log(`  ${colors.neonGreen}▸${colors.reset} ${colors.bright}Start Time:${colors.reset} ${colors.dim}${new Date(info.startTime).toISOString()}${colors.reset}`);
+        console.log(`\n${colors.neonCyan}╰${"─".repeat(50)}╯${colors.reset}\n`);
+      },
+    });
+
+    this.registerCommand({
+      name: "shutdown",
+      description: "Shutdown the kernel and all processes",
+      category: "system",
+      handler: () => {
+        console.log(`${colors.red}⚠${colors.reset}  Shutting down kernel...`);
+        Deno.exit(0);
+      },
+    });
+
+    this.registerCommand({
+      name: "exit",
+      description: "Exit the REPL (kernel continues running)",
+      category: "system",
+      aliases: ["quit", "q"],
+      handler: () => {
+        const kernelPid = this.kernel.getSystemInfo().pid;
+        console.log(`\n${colors.neonCyan}╭${"─".repeat(60)}╮${colors.reset}`);
+        console.log(`${colors.neonCyan}│${colors.reset}  ${colors.neonPink}Exiting REPL...${colors.reset}`);
+        console.log(`${colors.neonCyan}│${colors.reset}  ${colors.dim}Kernel continues running (PID: ${kernelPid})${colors.reset}`);
+        console.log(`${colors.neonCyan}│${colors.reset}  ${colors.dim}To re-enter: Send signal to kernel PID${colors.reset}`);
+        console.log(`${colors.neonCyan}│${colors.reset}  ${colors.dim}To stop kernel: Press CTRL+C${colors.reset}`);
+        console.log(`${colors.neonCyan}╰${"─".repeat(60)}╯${colors.reset}\n`);
+        this.running = false;
+      },
+    });
+
+    this.registerCommand({
+      name: "clear",
+      description: "Clear the screen",
+      category: "system",
+      aliases: ["cls"],
+      handler: () => {
+        console.clear();
+      },
+    });
+
+    this.registerCommand({
+      name: "history",
+      description: "Show command history",
+      category: "system",
+      handler: () => {
+        if (this.history.length === 0) {
+          console.log(`\n${colors.dim}No command history${colors.reset}\n`);
           return;
         }
 
-        const processId = args[0];
+        console.log(`\n${colors.neonCyan}${colors.bright}═══ COMMAND HISTORY ═══${colors.reset}\n`);
+        this.history.forEach((cmd, index) => {
+          console.log(
+            `  ${colors.dim}${String(index + 1).padStart(3)}${colors.reset} ${colors.neonGreen}▸${colors.reset} ${cmd}`,
+          );
+        });
+        console.log();
+      },
+    });
+
+    this.registerCommand({
+      name: "help",
+      description: "Display available commands and usage information",
+      category: "information",
+      aliases: ["h", "?"],
+      handler: () => {
+        this.showHelp();
+      },
+    });
+
+    // Development Commands
+    this.registerCommand({
+      name: "eval",
+      description: "Evaluate JavaScript expression with kernel context",
+      category: "development",
+      aliases: ["js"],
+      usage: "eval <javascript-code>",
+      handler: (args) => {
+        const code = args.join(" ");
+        if (!code) {
+          console.log(`${colors.red}✗ Usage:${colors.reset} eval <javascript-code>`);
+          return;
+        }
+
         try {
-          await this.kernel.killProcess(processId);
-          ConsoleStyler.logSuccess(`Process ${processId} will auto-restart...`);
+          const result = eval(`(function(kernel) { return ${code}; })`)(this.kernel);
+          console.log(`${colors.neonGreen}✓ Result:${colors.reset}`);
+          console.log(result);
         } catch (error) {
-          ConsoleStyler.logError(
-            `Failed to restart process: ${
+          console.log(
+            `${colors.red}✗ Evaluation error:${colors.reset} ${
               error instanceof Error ? error.message : String(error)
             }`,
           );
@@ -290,65 +391,21 @@ export class MetaRepl {
       },
     });
 
-    // Logs command - view process logs
     this.registerCommand({
-      name: "logs",
-      description: "View logs for a specific process",
-      handler: (args) => {
-        if (args.length === 0) {
-          ConsoleStyler.logError("Usage: logs <process-id>");
-          return;
+      name: "man",
+      description: "Display Genesis manual pages",
+      category: "information",
+      usage: "man <topic>",
+      handler: async (args) => {
+        try {
+          await manCommand(args);
+        } catch (error) {
+          console.log(
+            `${colors.red}✗ Manual error:${colors.reset} ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
         }
-
-        const processId = args[0];
-        const process = this.kernel.getProcessStatus(processId);
-        if (!process) {
-          ConsoleStyler.logError(`Process ${processId} not found`);
-          return;
-        }
-
-        ConsoleStyler.logInfo(`\nLogs for ${process.name} (${processId}):`);
-        ConsoleStyler.logInfo(`PID: ${process.pid || "N/A"}`);
-        ConsoleStyler.logInfo(`Status: ${process.status}`);
-        ConsoleStyler.logInfo(`Start Time: ${new Date(process.startTime).toISOString()}`);
-        ConsoleStyler.logInfo(`Restart Count: ${process.restartCount}`);
-        ConsoleStyler.logInfo("");
-      },
-    });
-
-    // Inspect command - detailed process info
-    this.registerCommand({
-      name: "inspect",
-      description: "Detailed inspection of a process",
-      aliases: ["describe", "show"],
-      handler: (args) => {
-        if (args.length === 0) {
-          ConsoleStyler.logError("Usage: inspect <process-id>");
-          return;
-        }
-
-        const processId = args[0];
-        const process = this.kernel.getProcessStatus(processId);
-        if (!process) {
-          ConsoleStyler.logError(`Process ${processId} not found`);
-          return;
-        }
-
-        const uptime = Math.floor((Date.now() - process.startTime) / 1000);
-
-        ConsoleStyler.logInfo("\n╔════════════════════════════════════════╗");
-        ConsoleStyler.logInfo("║       Process Inspection Report        ║");
-        ConsoleStyler.logInfo("╚════════════════════════════════════════╝");
-        ConsoleStyler.logInfo("");
-        ConsoleStyler.logInfo(`ID:           ${process.id}`);
-        ConsoleStyler.logInfo(`Name:         ${process.name}`);
-        ConsoleStyler.logInfo(`PID:          ${process.pid || "N/A"}`);
-        ConsoleStyler.logInfo(`Status:       ${process.status}`);
-        ConsoleStyler.logInfo(`Auto-Restart: ${process.autoRestart ? "Enabled" : "Disabled"}`);
-        ConsoleStyler.logInfo(`Restart Count: ${process.restartCount}`);
-        ConsoleStyler.logInfo(`Started:      ${new Date(process.startTime).toISOString()}`);
-        ConsoleStyler.logInfo(`Uptime:       ${this.formatUptime(uptime)}`);
-        ConsoleStyler.logInfo("");
       },
     });
   }
@@ -367,23 +424,104 @@ export class MetaRepl {
     }
   }
 
+  // =============================================================================
+  // DISPLAY METHODS
+  // =============================================================================
+
   /**
-   * Format uptime in human-readable format
+   * Display futuristic welcome banner
    */
-  private formatUptime(seconds: number): string {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
+  private displayWelcome(): void {
+    const banner = `
+${colors.neonCyan}╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║   ${colors.bright}███╗   ███╗███████╗████████╗ █████╗       ██████╗ ███████╗${colors.reset}${colors.neonCyan}   ║
+║   ${colors.bright}████╗ ████║██╔════╝╚══██╔══╝██╔══██╗     ██╔═══██╗██╔════╝${colors.reset}${colors.neonCyan}   ║
+║   ${colors.bright}██╔████╔██║█████╗     ██║   ███████║     ██║   ██║███████╗${colors.reset}${colors.neonCyan}   ║
+║   ${colors.bright}██║╚██╔╝██║██╔══╝     ██║   ██╔══██║     ██║   ██║╚════██║${colors.reset}${colors.neonCyan}   ║
+║   ${colors.bright}██║ ╚═╝ ██║███████╗   ██║   ██║  ██║     ╚██████╔╝███████║${colors.reset}${colors.neonCyan}   ║
+║   ${colors.bright}╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝      ╚═════╝ ╚══════╝${colors.reset}${colors.neonCyan}   ║
+║                                                               ║
+║            ${colors.neonPink}⚡ Process Management + System Control ⚡${colors.reset}${colors.neonCyan}            ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝${colors.reset}
 
-    const parts: string[] = [];
-    if (days > 0) parts.push(`${days}d`);
-    if (hours > 0) parts.push(`${hours}h`);
-    if (minutes > 0) parts.push(`${minutes}m`);
-    if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+${colors.dim}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}
 
-    return parts.join(" ");
+${colors.neonGreen}▸${colors.reset} ${colors.bright}Runtime:${colors.reset}   Deno ${colors.dim}${Deno.version.deno}${colors.reset}
+${colors.neonGreen}▸${colors.reset} ${colors.bright}TypeScript:${colors.reset} ${colors.dim}${Deno.version.typescript}${colors.reset}
+${colors.neonGreen}▸${colors.reset} ${colors.bright}Platform:${colors.reset}  ${colors.dim}${Deno.build.os} ${Deno.build.arch}${colors.reset}
+
+${colors.dim}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}
+
+${colors.electricBlue}Type ${colors.bright}'help'${colors.reset}${colors.electricBlue} to see available commands${colors.reset}
+${colors.electricBlue}Type ${colors.bright}'monitor'${colors.reset}${colors.electricBlue} for real-time process dashboard${colors.reset}
+${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electricBlue} to quit (kernel keeps running)${colors.reset}
+
+`;
+    console.log(banner);
   }
+
+  /**
+   * Display help with categorized commands
+   */
+  private showHelp(): void {
+    console.log(`\n${colors.neonCyan}${colors.bright}═══ META-OS COMMANDS ═══${colors.reset}\n`);
+
+    const categories = {
+      process: "Process Management",
+      monitoring: "Monitoring & Dashboard",
+      system: "System Control",
+      development: "Development Tools",
+      information: "Information & Help",
+    };
+
+    // Group commands by category
+    const commandsByCategory: Record<string, ReplCommand[]> = {
+      process: [],
+      monitoring: [],
+      system: [],
+      development: [],
+      information: [],
+    };
+
+    // Track seen commands to avoid duplicates from aliases
+    const seen = new Set<string>();
+
+    for (const cmd of this.commands.values()) {
+      if (!seen.has(cmd.name)) {
+        seen.add(cmd.name);
+        commandsByCategory[cmd.category].push(cmd);
+      }
+    }
+
+    // Display commands by category
+    for (const [category, title] of Object.entries(categories)) {
+      const cmds = commandsByCategory[category];
+      if (cmds.length === 0) continue;
+
+      console.log(`${colors.neonPink}▸ ${colors.bright}${title}${colors.reset}\n`);
+
+      for (const cmd of cmds) {
+        const aliases = cmd.aliases
+          ? ` ${colors.dim}(${cmd.aliases.join(", ")})${colors.reset}`
+          : "";
+        console.log(
+          `  ${colors.neonGreen}${cmd.name.padEnd(12)}${colors.reset}${aliases} ${colors.dim}│${colors.reset} ${cmd.description}`,
+        );
+        if (cmd.usage) {
+          console.log(`    ${colors.dim}Usage: ${cmd.usage}${colors.reset}`);
+        }
+      }
+      console.log();
+    }
+
+    console.log(`${colors.dim}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}\n`);
+  }
+
+  // =============================================================================
+  // PROCESS MONITORING
+  // =============================================================================
 
   /**
    * Show real-time process monitoring dashboard
@@ -392,12 +530,10 @@ export class MetaRepl {
     const encoder = new TextEncoder();
     let monitoring = true;
 
-    // Clear screen
-    await Deno.stdout.write(encoder.encode(this.CURSOR.clearScreen));
-    await Deno.stdout.write(encoder.encode(this.CURSOR.hide));
+    // Clear screen and hide cursor
+    await Deno.stdout.write(encoder.encode("\x1b[2J\x1b[H\x1b[?25l"));
 
     // Set up keyboard listener for exit
-    const originalRawMode = Deno.stdin.readable;
     Deno.stdin.setRaw(true);
 
     const renderMonitor = async () => {
@@ -405,61 +541,59 @@ export class MetaRepl {
       const sysInfo = this.kernel.getSystemInfo();
       const uptime = this.kernel.getUptime();
 
-      let output = this.CURSOR.clearScreen;
+      let output = "\x1b[2J\x1b[H";
 
       // Header
-      output += `${this.COLORS.bgBlue}${this.COLORS.bright} META-OS PROCESS MONITOR ${this.COLORS.reset} `;
-      output += `${this.COLORS.cyan}Updated: ${new Date().toLocaleTimeString()}${this.COLORS.reset}`;
-      output += `  ${this.COLORS.dim}Press 'q' to exit${this.COLORS.reset}\n\n`;
+      output += `${colors.bgBlue}${colors.bright} META-OS PROCESS MONITOR ${colors.reset} `;
+      output += `${colors.neonCyan}Updated: ${new Date().toLocaleTimeString()}${colors.reset}`;
+      output += `  ${colors.dim}Press 'q' to exit${colors.reset}\n\n`;
 
       // System stats
-      output += `${this.COLORS.bright}System Information:${this.COLORS.reset}\n`;
-      output += `  Uptime:      ${this.COLORS.cyan}${this.formatUptime(uptime)}${this.COLORS.reset}\n`;
-      output += `  PID:         ${this.COLORS.cyan}${sysInfo.pid}${this.COLORS.reset}\n`;
-      output += `  Platform:    ${this.COLORS.cyan}${sysInfo.platform}${this.COLORS.reset}\n`;
-      output += `  Version:     ${this.COLORS.cyan}${sysInfo.version}${this.COLORS.reset}\n\n`;
+      output += `${colors.bright}System Information:${colors.reset}\n`;
+      output += `  Uptime:      ${colors.neonCyan}${this.formatUptime(uptime)}${colors.reset}\n`;
+      output += `  PID:         ${colors.neonCyan}${sysInfo.pid}${colors.reset}\n`;
+      output += `  Platform:    ${colors.neonCyan}${sysInfo.platform}${colors.reset}\n`;
+      output += `  Version:     ${colors.neonCyan}${sysInfo.version}${colors.reset}\n\n`;
 
-      // Process table header
-      output += `${this.COLORS.bright}Managed Processes (${processes.length}):${this.COLORS.reset}\n`;
-      output += `${this.COLORS.dim}${"─".repeat(100)}${this.COLORS.reset}\n`;
-      output += `${this.COLORS.bright}`;
+      // Process table
+      output += `${colors.bright}Managed Processes (${processes.length}):${colors.reset}\n`;
+      output += `${colors.dim}${"─".repeat(100)}${colors.reset}\n`;
+      output += `${colors.bright}`;
       output += "ID".padEnd(22);
       output += "NAME".padEnd(22);
       output += "PID".padEnd(10);
       output += "STATUS".padEnd(12);
       output += "UPTIME".padEnd(12);
       output += "RESTARTS";
-      output += `${this.COLORS.reset}\n`;
-      output += `${this.COLORS.dim}${"─".repeat(100)}${this.COLORS.reset}\n`;
+      output += `${colors.reset}\n`;
+      output += `${colors.dim}${"─".repeat(100)}${colors.reset}\n`;
 
-      // Process rows
       for (const proc of processes) {
-        const uptime = Math.floor((Date.now() - proc.startTime) / 1000);
-        const uptimeStr = this.formatUptime(uptime);
+        const procUptime = Math.floor((Date.now() - proc.startTime) / 1000);
+        const uptimeStr = this.formatUptime(procUptime);
 
-        // Color code based on status
-        let statusColor = this.COLORS.gray;
-        if (proc.status === "running") statusColor = this.COLORS.green;
-        else if (proc.status === "failed") statusColor = this.COLORS.red;
-        else if (proc.status === "starting") statusColor = this.COLORS.yellow;
+        let statusColor = colors.gray;
+        if (proc.status === "running") statusColor = colors.neonGreen;
+        else if (proc.status === "failed") statusColor = colors.red;
+        else if (proc.status === "starting") statusColor = colors.orange;
 
         output += proc.id.padEnd(22);
         output += proc.name.padEnd(22);
         output += String(proc.pid || "N/A").padEnd(10);
-        output += `${statusColor}${proc.status.padEnd(12)}${this.COLORS.reset}`;
+        output += `${statusColor}${proc.status.padEnd(12)}${colors.reset}`;
         output += uptimeStr.padEnd(12);
         output += String(proc.restartCount);
         output += "\n";
       }
 
-      output += `${this.COLORS.dim}${"─".repeat(100)}${this.COLORS.reset}\n`;
+      output += `${colors.dim}${"─".repeat(100)}${colors.reset}\n`;
 
       // Legend
-      output += `\n${this.COLORS.dim}Legend: `;
-      output += `${this.COLORS.green}●${this.COLORS.reset} running  `;
-      output += `${this.COLORS.yellow}●${this.COLORS.reset} starting  `;
-      output += `${this.COLORS.red}●${this.COLORS.reset} failed  `;
-      output += `${this.COLORS.gray}●${this.COLORS.reset} stopped${this.COLORS.reset}`;
+      output += `\n${colors.dim}Legend: `;
+      output += `${colors.neonGreen}●${colors.reset} running  `;
+      output += `${colors.orange}●${colors.reset} starting  `;
+      output += `${colors.red}●${colors.reset} failed  `;
+      output += `${colors.gray}●${colors.reset} stopped${colors.reset}`;
 
       await Deno.stdout.write(encoder.encode(output));
     };
@@ -492,11 +626,15 @@ export class MetaRepl {
       }
     } finally {
       clearInterval(updateInterval);
-      await Deno.stdout.write(encoder.encode(this.CURSOR.show));
+      await Deno.stdout.write(encoder.encode("\x1b[?25h"));
       Deno.stdin.setRaw(false);
       console.log("\n");
     }
   }
+
+  // =============================================================================
+  // COMMAND PROCESSING
+  // =============================================================================
 
   /**
    * Process a command line input
@@ -507,6 +645,7 @@ export class MetaRepl {
 
     // Add to history
     this.history.push(trimmed);
+    this.commandCount++;
 
     // Parse command and arguments
     const parts = trimmed.split(/\s+/);
@@ -515,54 +654,44 @@ export class MetaRepl {
 
     // Find and execute command
     const command = this.commands.get(commandName);
+
     if (command) {
       try {
         await command.handler(args, this.kernel);
       } catch (error) {
-        ConsoleStyler.logError(
-          `Command error: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`\n${colors.red}✗ Error:${colors.reset} ${errorMessage}\n`);
       }
     } else {
-      ConsoleStyler.logError(`Unknown command: ${commandName}`);
-      ConsoleStyler.logInfo("Type 'help' for available commands");
+      console.log(`\n${colors.red}✗ Unknown command:${colors.reset} ${commandName}`);
+      console.log(`${colors.dim}Type 'help' for available commands${colors.reset}\n`);
     }
   }
 
-  /**
-   * ANSI color codes and control sequences
-   */
-  private readonly COLORS = {
-    reset: "\x1b[0m",
-    bright: "\x1b[1m",
-    dim: "\x1b[2m",
-    cyan: "\x1b[36m",
-    green: "\x1b[32m",
-    yellow: "\x1b[33m",
-    blue: "\x1b[34m",
-    magenta: "\x1b[35m",
-    red: "\x1b[31m",
-    gray: "\x1b[90m",
-    bgBlue: "\x1b[44m",
-    bgGreen: "\x1b[42m",
-    bgRed: "\x1b[41m",
-  };
+  // =============================================================================
+  // INPUT HANDLING
+  // =============================================================================
 
-  private readonly CURSOR = {
-    hide: "\x1b[?25l",
-    show: "\x1b[?25h",
-    up: (n = 1) => `\x1b[${n}A`,
-    down: (n = 1) => `\x1b[${n}B`,
-    forward: (n = 1) => `\x1b[${n}C`,
-    back: (n = 1) => `\x1b[${n}D`,
-    toColumn: (n: number) => `\x1b[${n}G`,
-    clearLine: "\x1b[2K",
-    clearScreen: "\x1b[2J\x1b[H",
-    saveCursor: "\x1b[s",
-    restoreCursor: "\x1b[u",
-  };
+  /**
+   * Get autocomplete suggestions for partial input
+   */
+  private getAutocompleteSuggestions(partial: string): string[] {
+    const matches: string[] = [];
+    const seen = new Set<string>();
+
+    for (const [name, cmd] of this.commands.entries()) {
+      if (name.startsWith(partial) && !seen.has(cmd.name)) {
+        if (name === cmd.name) {
+          matches.push(name);
+          seen.add(cmd.name);
+        } else if (partial.length > 0) {
+          matches.push(name);
+        }
+      }
+    }
+
+    return matches.sort();
+  }
 
   /**
    * Get command suggestions based on input
@@ -586,48 +715,43 @@ export class MetaRepl {
    * Render the futuristic prompt
    */
   private renderPrompt(): string {
-    const sysInfo = this.kernel.getSystemInfo();
-    const uptime = this.kernel.getUptime();
     const processes = this.kernel.listProcesses();
-    const runningCount = processes.filter(p => p.status === "running").length;
+    const runningCount = processes.filter((p) => p.status === "running").length;
 
-    // Time indicator
     const now = new Date();
-    const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+    const timeStr = now.toLocaleTimeString("en-US", { hour12: false });
 
-    // Status indicator (animated)
     const statusChar = runningCount > 0 ? "●" : "○";
-    const statusColor = runningCount > 0 ? this.COLORS.green : this.COLORS.gray;
+    const statusColor = runningCount > 0 ? colors.neonGreen : colors.gray;
 
-    // Build the prompt
     const parts = [
-      `${this.COLORS.dim}[${this.COLORS.cyan}${timeStr}${this.COLORS.dim}]${this.COLORS.reset}`,
-      `${statusColor}${statusChar}${this.COLORS.reset}`,
-      `${this.COLORS.magenta}meta-os${this.COLORS.reset}`,
-      `${this.COLORS.dim}[${this.COLORS.yellow}${runningCount}${this.COLORS.dim} proc]${this.COLORS.reset}`,
-      `${this.COLORS.blue}❯${this.COLORS.reset}`,
+      `${colors.dim}[${colors.neonCyan}${timeStr}${colors.dim}]${colors.reset}`,
+      `${statusColor}${statusChar}${colors.reset}`,
+      `${colors.neonPink}meta-os${colors.reset}`,
+      `${colors.dim}[${colors.gold}${runningCount}${colors.dim} proc]${colors.reset}`,
+      `${colors.electricBlue}❯${colors.reset}`,
     ];
 
     return parts.join(" ") + " ";
   }
 
   /**
-   * Render status bar at the top of the screen
+   * Render status bar at the top
    */
   private renderStatusBar(): string {
     const sysInfo = this.kernel.getSystemInfo();
     const uptime = this.kernel.getUptime();
     const uptimeStr = this.formatUptime(uptime);
     const processes = this.kernel.listProcesses();
-    const runningCount = processes.filter(p => p.status === "running").length;
+    const runningCount = processes.filter((p) => p.status === "running").length;
     const totalCount = processes.length;
 
     const statusParts = [
-      `${this.COLORS.bgBlue}${this.COLORS.bright} META-OS v${sysInfo.version} ${this.COLORS.reset}`,
-      `${this.COLORS.cyan}⬆ ${uptimeStr}${this.COLORS.reset}`,
-      `${this.COLORS.green}◉ ${runningCount}/${totalCount} proc${this.COLORS.reset}`,
-      `${this.COLORS.yellow}⚡ PID:${sysInfo.pid}${this.COLORS.reset}`,
-      `${this.COLORS.magenta}${sysInfo.platform}${this.COLORS.reset}`,
+      `${colors.bgBlue}${colors.bright} META-OS v${sysInfo.version} ${colors.reset}`,
+      `${colors.neonCyan}⬆ ${uptimeStr}${colors.reset}`,
+      `${colors.neonGreen}◉ ${runningCount}/${totalCount} proc${colors.reset}`,
+      `${colors.gold}⚡ PID:${sysInfo.pid}${colors.reset}`,
+      `${colors.neonPink}${sysInfo.platform}${colors.reset}`,
     ];
 
     return statusParts.join("  ") + "\n";
@@ -642,61 +766,28 @@ export class MetaRepl {
     const maxSuggestions = 5;
     const displayed = suggestions.slice(0, maxSuggestions);
 
-    let output = `\n${this.COLORS.dim}suggestions: ${this.COLORS.reset}`;
-    output += displayed.map((s, i) => {
-      const isSelected = i === this.inputState.suggestionIndex;
-      if (isSelected) {
-        return `${this.COLORS.bgBlue}${this.COLORS.bright} ${s} ${this.COLORS.reset}`;
-      }
-      return `${this.COLORS.cyan}${s}${this.COLORS.reset}`;
-    }).join(`${this.COLORS.dim} | ${this.COLORS.reset}`);
+    let output = `\n${colors.dim}suggestions: ${colors.reset}`;
+    output += displayed
+      .map((s, i) => {
+        const isSelected = i === this.inputState.suggestionIndex;
+        if (isSelected) {
+          return `${colors.bgBlue}${colors.bright} ${s} ${colors.reset}`;
+        }
+        return `${colors.neonCyan}${s}${colors.reset}`;
+      })
+      .join(`${colors.dim} | ${colors.reset}`);
 
     if (suggestions.length > maxSuggestions) {
-      output += ` ${this.COLORS.dim}+${suggestions.length - maxSuggestions} more${this.COLORS.reset}`;
+      output += ` ${colors.dim}+${suggestions.length - maxSuggestions} more${colors.reset}`;
     }
 
     return output;
   }
 
   /**
-   * Display welcome message with futuristic ASCII art
-   */
-  private displayWelcome(): void {
-    const banner = `
-${this.COLORS.cyan}╔═══════════════════════════════════════════════════════════╗
-║                                                           ║
-║   ${this.COLORS.bright}███╗   ███╗███████╗████████╗ █████╗       ██████╗ ███████╗${this.COLORS.reset}${this.COLORS.cyan}   ║
-║   ${this.COLORS.bright}████╗ ████║██╔════╝╚══██╔══╝██╔══██╗     ██╔═══██╗██╔════╝${this.COLORS.reset}${this.COLORS.cyan}   ║
-║   ${this.COLORS.bright}██╔████╔██║█████╗     ██║   ███████║     ██║   ██║███████╗${this.COLORS.reset}${this.COLORS.cyan}   ║
-║   ${this.COLORS.bright}██║╚██╔╝██║██╔══╝     ██║   ██╔══██║     ██║   ██║╚════██║${this.COLORS.reset}${this.COLORS.cyan}   ║
-║   ${this.COLORS.bright}██║ ╚═╝ ██║███████╗   ██║   ██║  ██║     ╚██████╔╝███████║${this.COLORS.reset}${this.COLORS.cyan}   ║
-║   ${this.COLORS.bright}╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝      ╚═════╝ ╚══════╝${this.COLORS.reset}${this.COLORS.cyan}   ║
-║                                                           ║
-║         ${this.COLORS.magenta}${this.COLORS.bright}◢◤ F U T U R I S T I C   R E P L   S H E L L ◢◤${this.COLORS.reset}${this.COLORS.cyan}         ║
-║                                                           ║
-╚═══════════════════════════════════════════════════════════╝${this.COLORS.reset}
-
-${this.COLORS.green}${this.COLORS.bright}Features:${this.COLORS.reset}
-  ${this.COLORS.cyan}→${this.COLORS.reset} ${this.COLORS.dim}Arrow keys for history navigation${this.COLORS.reset}
-  ${this.COLORS.cyan}→${this.COLORS.reset} ${this.COLORS.dim}Tab for command auto-completion${this.COLORS.reset}
-  ${this.COLORS.cyan}→${this.COLORS.reset} ${this.COLORS.dim}Real-time system status display${this.COLORS.reset}
-  ${this.COLORS.cyan}→${this.COLORS.reset} ${this.COLORS.dim}Smart command suggestions${this.COLORS.reset}
-
-${this.COLORS.yellow}Commands:${this.COLORS.reset} ${this.COLORS.dim}Type ${this.COLORS.bright}help${this.COLORS.reset}${this.COLORS.dim} for available commands${this.COLORS.reset}
-${this.COLORS.yellow}Exit:${this.COLORS.reset} ${this.COLORS.dim}Type ${this.COLORS.bright}exit${this.COLORS.reset}${this.COLORS.dim} to leave REPL (kernel keeps running)${this.COLORS.reset}
-${this.COLORS.red}Shutdown:${this.COLORS.reset} ${this.COLORS.dim}Press ${this.COLORS.bright}CTRL+C${this.COLORS.reset}${this.COLORS.dim} to shutdown the kernel${this.COLORS.reset}
-`;
-
-    console.log(banner);
-  }
-
-  /**
    * Handle keyboard input with special keys
    */
-  private async handleKeyPress(
-    key: Uint8Array,
-    encoder: TextEncoder,
-  ): Promise<boolean> {
+  private async handleKeyPress(key: Uint8Array, encoder: TextEncoder): Promise<boolean> {
     const byte = key[0];
 
     // Handle escape sequences (arrow keys, etc.)
@@ -758,7 +849,7 @@ ${this.COLORS.red}Shutdown:${this.COLORS.reset} ${this.COLORS.dim}Press ${this.C
 
     // Ctrl+L - clear screen
     if (byte === 12) {
-      await Deno.stdout.write(encoder.encode(this.CURSOR.clearScreen));
+      await Deno.stdout.write(encoder.encode("\x1b[2J\x1b[H"));
       this.displayWelcome();
       return false;
     }
@@ -802,9 +893,8 @@ ${this.COLORS.red}Shutdown:${this.COLORS.reset} ${this.COLORS.dim}Press ${this.C
       this.inputState.buffer = "";
       this.inputState.cursor = 0;
     } else {
-      this.inputState.buffer = this.history[
-        this.history.length - 1 - this.inputState.historyIndex
-      ];
+      this.inputState.buffer =
+        this.history[this.history.length - 1 - this.inputState.historyIndex];
       this.inputState.cursor = this.inputState.buffer.length;
     }
   }
@@ -835,33 +925,33 @@ ${this.COLORS.red}Shutdown:${this.COLORS.reset} ${this.COLORS.dim}Press ${this.C
     const buffer = this.inputState.buffer;
     const suggestions = this.getCommandSuggestions(buffer.split(" ")[0]);
 
-    let output = this.CURSOR.clearLine + "\r" + prompt + buffer;
+    let output = "\x1b[2K\r" + prompt + buffer;
 
     // Show suggestion preview (ghost text)
     if (suggestions.length > 0 && buffer.length > 0) {
       const suggestion = suggestions[0];
       if (suggestion.startsWith(buffer)) {
         const ghost = suggestion.slice(buffer.length);
-        output += `${this.COLORS.dim}${ghost}${this.COLORS.reset}`;
+        output += `${colors.dim}${ghost}${colors.reset}`;
       }
     }
 
     // Render suggestions below if multiple
     if (suggestions.length > 1 && buffer.length > 0) {
       output += this.renderSuggestions(suggestions);
-      // Move cursor back up
-      output += this.CURSOR.up(1);
+      output += "\x1b[1A";
     }
 
     // Position cursor
-    const cursorPos = prompt.length - this.countAnsiChars(prompt) + this.inputState.cursor;
-    output += this.CURSOR.toColumn(cursorPos + 1);
+    const cursorPos =
+      prompt.length - this.countAnsiChars(prompt) + this.inputState.cursor;
+    output += `\x1b[${cursorPos + 1}G`;
 
     return output;
   }
 
   /**
-   * Count ANSI escape sequence characters to calculate real cursor position
+   * Count ANSI escape sequence characters
    */
   private countAnsiChars(str: string): number {
     const ansiRegex = /\x1b\[[0-9;]*[A-Za-z]/g;
@@ -873,6 +963,32 @@ ${this.COLORS.red}Shutdown:${this.COLORS.reset} ${this.COLORS.dim}Press ${this.C
     return count;
   }
 
+  // =============================================================================
+  // UTILITY METHODS
+  // =============================================================================
+
+  /**
+   * Format uptime in human-readable format
+   */
+  private formatUptime(seconds: number): string {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    const parts: string[] = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+
+    return parts.join(" ");
+  }
+
+  // =============================================================================
+  // MAIN REPL LOOP
+  // =============================================================================
+
   /**
    * Start the futuristic REPL
    */
@@ -880,7 +996,7 @@ ${this.COLORS.red}Shutdown:${this.COLORS.reset} ${this.COLORS.dim}Press ${this.C
     this.running = true;
 
     // Clear screen and display welcome
-    await Deno.stdout.write(new TextEncoder().encode(this.CURSOR.clearScreen));
+    await Deno.stdout.write(new TextEncoder().encode("\x1b[2J\x1b[H"));
     this.displayWelcome();
 
     const encoder = new TextEncoder();
@@ -889,7 +1005,7 @@ ${this.COLORS.red}Shutdown:${this.COLORS.reset} ${this.COLORS.dim}Press ${this.C
     Deno.stdin.setRaw(true);
 
     // Hide cursor during input handling
-    await Deno.stdout.write(encoder.encode(this.CURSOR.hide));
+    await Deno.stdout.write(encoder.encode("\x1b[?25l"));
 
     try {
       while (this.running) {
@@ -911,19 +1027,18 @@ ${this.COLORS.red}Shutdown:${this.COLORS.reset} ${this.COLORS.dim}Press ${this.C
         while (!inputComplete && this.running) {
           // Render the input line
           await Deno.stdout.write(encoder.encode(this.renderInputLine()));
-          await Deno.stdout.write(encoder.encode(this.CURSOR.show));
+          await Deno.stdout.write(encoder.encode("\x1b[?25h"));
 
           // Read a single key
           const buffer = new Uint8Array(16);
           const n = await Deno.stdin.read(buffer);
 
           if (n === null) {
-            // EOF reached
             this.running = false;
             break;
           }
 
-          await Deno.stdout.write(encoder.encode(this.CURSOR.hide));
+          await Deno.stdout.write(encoder.encode("\x1b[?25l"));
 
           const key = buffer.subarray(0, n);
           inputComplete = await this.handleKeyPress(key, encoder);
@@ -932,7 +1047,7 @@ ${this.COLORS.red}Shutdown:${this.COLORS.reset} ${this.COLORS.dim}Press ${this.C
         if (!this.running) break;
 
         // Clear suggestions if any
-        await Deno.stdout.write(encoder.encode(this.CURSOR.clearLine + "\r\n"));
+        await Deno.stdout.write(encoder.encode("\x1b[2K\r\n"));
 
         // Process the command
         const command = this.inputState.buffer.trim();
@@ -940,14 +1055,14 @@ ${this.COLORS.red}Shutdown:${this.COLORS.reset} ${this.COLORS.dim}Press ${this.C
           await this.processCommand(command);
         }
 
-        console.log(); // Add a blank line after output
+        console.log();
       }
     } finally {
       // Restore cursor and terminal settings
-      await Deno.stdout.write(encoder.encode(this.CURSOR.show));
+      await Deno.stdout.write(encoder.encode("\x1b[?25h"));
       Deno.stdin.setRaw(false);
     }
 
-    ConsoleStyler.logInfo("\nREPL session ended");
+    console.log(`${colors.dim}REPL session ended${colors.reset}\n`);
   }
 }
