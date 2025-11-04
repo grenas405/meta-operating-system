@@ -25,7 +25,11 @@
  */
 
 import { join } from "https://deno.land/std@0.224.0/path/mod.ts";
-import { Logger, BoxRenderer, BannerRenderer } from "../../console-styler/mod.ts";
+import {
+  BannerRenderer,
+  BoxRenderer,
+  Logger,
+} from "../../console-styler/mod.ts";
 
 // Types for better developer experience
 interface CLIContext {
@@ -91,7 +95,9 @@ export async function dbCommand(
     // Validate configuration
     const validationResult = validateDatabaseConfig(dbConfig);
     if (!validationResult.valid) {
-      logger.error(`❌ Configuration validation failed: ${validationResult.error}`);
+      logger.error(
+        `❌ Configuration validation failed: ${validationResult.error}`,
+      );
       return 1;
     }
 
@@ -108,11 +114,15 @@ export async function dbCommand(
     // Success output with styled box
     logger.success("✅ Database setup completed successfully!\n");
 
-    boxRenderer.render({
+    BannerRenderer.render({
       title: "Database Configuration",
       content: `📊 Database: ${dbConfig.name}
 👤 User: ${dbConfig.user}
-🔌 Connection: ${dbConfig.useSocket ? `Unix Socket (${dbConfig.socket})` : `TCP (${dbConfig.host})`}`,
+🔌 Connection: ${
+        dbConfig.useSocket
+          ? `Unix Socket (${dbConfig.socket})`
+          : `TCP (${dbConfig.host})`
+      }`,
       style: "single",
       padding: 1,
     });
@@ -124,7 +134,9 @@ export async function dbCommand(
     logger.info(`  DB_NAME=${dbConfig.name}`);
 
     console.log("\nNext Steps:");
-    console.log("  1. Update your site .env files with these database credentials");
+    console.log(
+      "  1. Update your site .env files with these database credentials",
+    );
     console.log("  2. Test connection: genesis db --test-only");
     console.log("  3. Start your Deno Genesis services");
 
@@ -213,7 +225,6 @@ function gatherDatabaseConfiguration(
   return config;
 }
 
-
 /**
  * Validate database configuration
  */
@@ -286,7 +297,9 @@ async function executeDatabaseSetup(
   logger.info("Testing database connection...");
   const connectionTest = await testDatabaseConnection(config, context);
   if (!connectionTest) {
-    logger.warn("⚠️  Warning: Connection test failed, but setup may have succeeded.");
+    logger.warn(
+      "⚠️  Warning: Connection test failed, but setup may have succeeded.",
+    );
   }
 }
 
@@ -312,7 +325,9 @@ async function checkMariaDBStatus(context: CLIContext): Promise<void> {
     }
   } catch (error) {
     if (context.verbose) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
       logger.warn(`Note: Could not check MariaDB status: ${errorMessage}`);
     }
   }
@@ -355,7 +370,9 @@ async function testRootAccess(context: CLIContext): Promise<boolean> {
     return false;
   } catch (error) {
     if (context.verbose) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
       logger.error(`Root access test error: ${errorMessage}`);
     }
     return false;
@@ -559,7 +576,9 @@ async function testDatabaseConnection(
     }
   } catch (error) {
     if (context.verbose) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
       logger.error(`Connection test error: ${errorMessage}`);
     }
     return false;

@@ -4,6 +4,7 @@ import { Formatter } from "../core/formatter.ts";
 
 export interface BannerOptions {
   title: string;
+  content: string;
   subtitle?: string;
   version?: string;
   author?: string;
@@ -21,6 +22,7 @@ export class BannerRenderer {
   static render(options: BannerOptions): void {
     const {
       title,
+      content,
       subtitle,
       version,
       author,
