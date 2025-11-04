@@ -5,14 +5,10 @@
  * No external dependencies - uses only Deno built-in APIs
  */
 
-import { ConsoleStyler } from "./utils/console-styler/mod.ts";
+import type { ILogger } from "./interfaces/mod.ts";
+import { defaultLogger } from "./adapters/mod.ts";
+import { env, type KernelConfig } from "./config/mod.ts";
 import { MetaRepl } from "./utils/repl.ts";
-
-interface KernelConfig {
-  debug: boolean;
-  serverPort: number;
-  serverHostname: string;
-}
 
 interface SystemInfo {
   startTime: number;
@@ -40,15 +36,15 @@ class Kernel {
   private systemInfo: SystemInfo;
   private processes: Map<string, ManagedProcess> = new Map();
   private shutdownInProgress = false;
+  private logger: ILogger;
 
-  constructor(config: Partial<KernelConfig> = {}) {
-    this.config = {
-      debug: config.debug ?? Deno.env.get("DEBUG") === "true",
-      serverPort: config.serverPort ??
-        (Number(Deno.env.get("PORT")) || 8000),
-      serverHostname: config.serverHostname ??
-        (Deno.env.get("HOSTNAME") || "localhost"),
-    };
+  constructor(
+    config: Partial<KernelConfig> = {},
+    logger: ILogger = defaultLogger,
+  ) {
+    // Use centralized configuration with environment variable fallbacks
+    this.config = env.loadKernelConfig(config);
+    this.logger = logger;
 
     this.systemInfo = {
       startTime: Date.now(),
@@ -242,7 +238,7 @@ class Kernel {
           process.readyResolver();
         }
         // Always display process output
-        ConsoleStyler.logInfo(`[${process.name}] ${text.trim()}`);
+        this.logger.logInfo(`[${process.name}] ${text.trim()}`);
       }
     })();
 
@@ -251,7 +247,7 @@ class Kernel {
       if (!process.child?.stderr) return;
       for await (const chunk of process.child.stderr) {
         const text = decoder.decode(chunk);
-        ConsoleStyler.logError(`[${process.name}] ${text.trim()}`);
+        this.logger.logError(`[${process.name}] ${text.trim()}`);
 
         // Check for address already in use error
         if (
@@ -514,7 +510,7 @@ class Kernel {
    */
   private log(message: string, metadata?: Record<string, unknown>): void {
     const timestamp = new Date().toISOString();
-    ConsoleStyler.logInfo(`[${timestamp}] [KERNEL] ${message}`, metadata);
+    this.logger.logInfo(`[${timestamp}] [KERNEL] ${message}`, metadata);
   }
 
   private logSuccess(
@@ -522,12 +518,12 @@ class Kernel {
     metadata?: Record<string, unknown>,
   ): void {
     const timestamp = new Date().toISOString();
-    ConsoleStyler.logSuccess(`[${timestamp}] [KERNEL] ${message}`, metadata);
+    this.logger.logSuccess(`[${timestamp}] [KERNEL] ${message}`, metadata);
   }
 
   private logError(message: string, metadata?: Record<string, unknown>): void {
     const timestamp = new Date().toISOString();
-    ConsoleStyler.logError(`[${timestamp}] [KERNEL] ${message}`, metadata);
+    this.logger.logError(`[${timestamp}] [KERNEL] ${message}`, metadata);
   }
 
   /**
@@ -535,10 +531,13 @@ class Kernel {
    */
   async boot(): Promise<void> {
     // Display startup banner
+    // NOTE: renderBanner is not part of ILogger interface - using ConsoleStyler directly for now
+    // This is acceptable as banners are a specialized formatting concern
+    const { ConsoleStyler } = await import("./utils/console-styler/mod.ts");
     ConsoleStyler.renderBanner({
       version: this.systemInfo.version,
       buildDate: new Date().toISOString(),
-      environment: Deno.env.get("DENO_ENV") || "development",
+      environment: this.config.environment,
       port: this.config.serverPort,
       author: "Meta-OS Team",
       repository: "github.com/meta-os/meta-operating-system",
@@ -560,8 +559,11 @@ class Kernel {
 
     await this.init();
 
-    // Start the HTTP server process
-    const serverScriptPath = new URL("./server.ts", import.meta.url).pathname;
+    // Start the HTTP server process using configured path
+    const serverScriptPath = new URL(
+      this.config.serverScriptPath,
+      import.meta.url,
+    ).pathname;
 
     // Create a ready promise for the HTTP server
     let serverReadyResolver: () => void;
@@ -638,7 +640,7 @@ class Kernel {
    */
   private async shutdown(signal: string): Promise<void> {
     this.shutdownInProgress = true;
-    ConsoleStyler.logWarning(
+    this.logger.logWarning(
       `Received ${signal}, initiating graceful shutdown...`,
     );
 

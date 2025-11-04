@@ -11,13 +11,9 @@ import {
   PerformanceMonitor,
 } from "./middleware/performanceMonitor.ts";
 import { errorHandler, logger, requestId, timing } from "./middleware/index.ts";
-import { ConsoleStyler } from "./utils/console-styler/mod.ts";
-
-interface ServerConfig {
-  port: number;
-  hostname: string;
-  debug: boolean;
-}
+import type { ILogger } from "./interfaces/mod.ts";
+import { defaultLogger } from "./adapters/mod.ts";
+import { env, type ServerConfig } from "./config/mod.ts";
 
 interface SystemInfo {
   startTime: number;
@@ -32,13 +28,15 @@ class HTTPServer {
   private abortController: AbortController;
   private performanceMonitor: PerformanceMonitor;
   private server: Deno.HttpServer | null = null;
+  private logger: ILogger;
 
-  constructor(config: Partial<ServerConfig> = {}) {
-    this.config = {
-      port: config.port ?? (Number(Deno.env.get("PORT")) || 8000),
-      hostname: config.hostname ?? (Deno.env.get("HOSTNAME") || "localhost"),
-      debug: config.debug ?? Deno.env.get("DEBUG") === "true",
-    };
+  constructor(
+    config: Partial<ServerConfig> = {},
+    logger: ILogger = defaultLogger,
+  ) {
+    // Use centralized configuration with environment variable fallbacks
+    this.config = env.loadServerConfig(config);
+    this.logger = logger;
 
     this.systemInfo = {
       startTime: Date.now(),
@@ -76,7 +74,7 @@ class HTTPServer {
    */
   private log(message: string, metadata?: Record<string, unknown>): void {
     const timestamp = new Date().toISOString();
-    ConsoleStyler.logInfo(`[${timestamp}] [SERVER] ${message}`, metadata);
+    this.logger.logInfo(`[${timestamp}] [SERVER] ${message}`, metadata);
   }
 
   private logSuccess(
@@ -84,22 +82,25 @@ class HTTPServer {
     metadata?: Record<string, unknown>,
   ): void {
     const timestamp = new Date().toISOString();
-    ConsoleStyler.logSuccess(`[${timestamp}] [SERVER] ${message}`, metadata);
+    this.logger.logSuccess(`[${timestamp}] [SERVER] ${message}`, metadata);
   }
 
   private logError(message: string, metadata?: Record<string, unknown>): void {
     const timestamp = new Date().toISOString();
-    ConsoleStyler.logError(`[${timestamp}] [SERVER] ${message}`, metadata);
+    this.logger.logError(`[${timestamp}] [SERVER] ${message}`, metadata);
   }
 
   /**
    * Start the HTTP server
    */
   async start(): Promise<void> {
+    // Display startup banner
+    // NOTE: renderBanner is not part of ILogger interface - using ConsoleStyler directly for now
+    const { ConsoleStyler } = await import("./utils/console-styler/mod.ts");
     ConsoleStyler.renderBanner({
       version: this.systemInfo.version,
       buildDate: new Date().toISOString(),
-      environment: Deno.env.get("DENO_ENV") || "development",
+      environment: this.config.environment,
       port: this.config.port,
       author: "Meta-OS Team",
       repository: "github.com/meta-os/meta-operating-system",
@@ -165,7 +166,7 @@ class HTTPServer {
               },
             );
             // Signal to kernel that server is ready
-            ConsoleStyler.logInfo("SERVER_READY");
+            this.logger.logInfo("SERVER_READY");
           },
         },
         async (request) => {
@@ -214,7 +215,7 @@ class HTTPServer {
    * Graceful shutdown
    */
   private async shutdown(signal: string): Promise<void> {
-    ConsoleStyler.logWarning(
+    this.logger.logWarning(
       `Received ${signal}, shutting down HTTP server...`,
     );
 

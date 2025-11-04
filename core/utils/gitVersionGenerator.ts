@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-read --allow-write o--allow-run --allow-net --allow-env
+#!/usr/bin/env -S deno run --allow-read --allow-write --allow-run --allow-net --allow-env
 
 // version.ts - Git-based version management
 const VERSION_FILE_PATH = "./VERSION";
