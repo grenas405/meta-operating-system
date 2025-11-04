@@ -4,7 +4,7 @@
  *
  * "Where Unix Philosophy meets Cyberpunk Aesthetics"
  *
- * A revolutionary command-line interface for the Deno Genesis framework
+ * A revolutionary command-line interface for the Deno Genesis Meta Operating System
  * that combines timeless Unix principles with modern developer experience.
  *
  * Philosophy:
@@ -168,7 +168,7 @@ export class GenesisRepl {
 
     this.registerCommand({
       name: "status",
-      description: "Show Genesis framework and site status",
+      description: "Show Genesis Meta OS and site status",
       category: "system",
       handler: () => {
         this.showStatus();
@@ -177,7 +177,7 @@ export class GenesisRepl {
 
     this.registerCommand({
       name: "version",
-      description: "Display Genesis framework version",
+      description: "Display Genesis Meta OS version",
       category: "system",
       aliases: ["v"],
       handler: () => {
@@ -353,7 +353,7 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
    */
   private showVersion(): void {
     console.log(
-      `\n${colors.neonPink}${colors.bright}Deno Genesis Framework${colors.reset}`,
+      `\n${colors.neonPink}${colors.bright}Deno Genesis Meta Operating System${colors.reset}`,
     );
     console.log(`${colors.dim}Version: 1.0.0${colors.reset}`);
     console.log(`${colors.dim}Build: 2025-01-03${colors.reset}\n`);
@@ -447,6 +447,142 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
   }
 
   /**
+   * Get autocomplete suggestions for partial input
+   */
+  private getAutocompleteSuggestions(partial: string): string[] {
+    const matches: string[] = [];
+    const seen = new Set<string>();
+
+    for (const [name, cmd] of this.commands.entries()) {
+      // Only show primary command names (not aliases) unless they match
+      if (name.startsWith(partial) && !seen.has(cmd.name)) {
+        if (name === cmd.name) {
+          matches.push(name);
+          seen.add(cmd.name);
+        } else if (partial.length > 0) {
+          // Show aliases only if user has typed something
+          matches.push(name);
+        }
+      }
+    }
+
+    return matches.sort();
+  }
+
+  /**
+   * Read a line with tab completion support
+   */
+  private async readLineWithCompletion(): Promise<string | null> {
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+
+    let line = "";
+    let cursor = 0;
+
+    // Enable raw mode for character-by-character input
+    Deno.stdin.setRaw(true);
+
+    try {
+      while (true) {
+        const buffer = new Uint8Array(16);
+        const n = await Deno.stdin.read(buffer);
+
+        if (n === null) {
+          return null; // EOF (Ctrl+D)
+        }
+
+        const data = buffer.subarray(0, n);
+
+        // Handle different key inputs
+        if (n === 1 && data[0] === 0x04) {
+          // Ctrl+D - EOF
+          if (line.length === 0) {
+            return null;
+          }
+          continue;
+        } else if (n === 1 && data[0] === 0x03) {
+          // Ctrl+C - clear line
+          await Deno.stdout.write(encoder.encode("\r" + " ".repeat(this.getPrompt().length + line.length + 10) + "\r"));
+          return "";
+        } else if (n === 1 && data[0] === 0x09) {
+          // Tab - autocomplete
+          const suggestions = this.getAutocompleteSuggestions(line);
+
+          if (suggestions.length === 1) {
+            // Single match - complete it
+            const completion = suggestions[0];
+            // Clear current line
+            await Deno.stdout.write(encoder.encode("\r" + " ".repeat(this.getPrompt().length + line.length + 10) + "\r"));
+            await Deno.stdout.write(encoder.encode(this.getPrompt()));
+            line = completion;
+            cursor = line.length;
+            await Deno.stdout.write(encoder.encode(line));
+          } else if (suggestions.length > 1) {
+            // Multiple matches - show them
+            await Deno.stdout.write(encoder.encode("\n"));
+            const maxLen = Math.max(...suggestions.map(s => s.length));
+            const columns = Math.floor(80 / (maxLen + 2));
+
+            for (let i = 0; i < suggestions.length; i++) {
+              await Deno.stdout.write(encoder.encode(
+                colors.neonGreen + suggestions[i].padEnd(maxLen + 2) + colors.reset
+              ));
+              if ((i + 1) % columns === 0) {
+                await Deno.stdout.write(encoder.encode("\n"));
+              }
+            }
+            if (suggestions.length % columns !== 0) {
+              await Deno.stdout.write(encoder.encode("\n"));
+            }
+
+            // Redisplay prompt and current line
+            await Deno.stdout.write(encoder.encode(this.getPrompt() + line));
+          }
+        } else if (n === 1 && data[0] === 0x7F) {
+          // Backspace
+          if (cursor > 0) {
+            line = line.slice(0, cursor - 1) + line.slice(cursor);
+            cursor--;
+            // Redraw line
+            await Deno.stdout.write(encoder.encode("\r" + this.getPrompt() + line + " \r" + this.getPrompt()));
+            await Deno.stdout.write(encoder.encode(line.slice(0, cursor)));
+          }
+        } else if (n === 1 && (data[0] === 0x0A || data[0] === 0x0D)) {
+          // Enter/Return
+          await Deno.stdout.write(encoder.encode("\n"));
+          return line;
+        } else if (n === 3 && data[0] === 0x1B && data[1] === 0x5B) {
+          // Arrow keys and other escape sequences
+          if (data[2] === 0x44 && cursor > 0) {
+            // Left arrow
+            cursor--;
+            await Deno.stdout.write(encoder.encode("\x1b[D"));
+          } else if (data[2] === 0x43 && cursor < line.length) {
+            // Right arrow
+            cursor++;
+            await Deno.stdout.write(encoder.encode("\x1b[C"));
+          }
+          // Ignore up/down arrows for now
+        } else if (n === 1 && data[0] >= 0x20 && data[0] <= 0x7E) {
+          // Printable character
+          const char = decoder.decode(data);
+          line = line.slice(0, cursor) + char + line.slice(cursor);
+          cursor++;
+          // Redraw from cursor position
+          await Deno.stdout.write(encoder.encode(char));
+          if (cursor < line.length) {
+            await Deno.stdout.write(encoder.encode(line.slice(cursor) + "\r" + this.getPrompt()));
+            await Deno.stdout.write(encoder.encode(line.slice(0, cursor)));
+          }
+        }
+      }
+    } finally {
+      // Restore normal mode
+      Deno.stdin.setRaw(false);
+    }
+  }
+
+  /**
    * Start the REPL
    */
   async start(): Promise<void> {
@@ -454,27 +590,20 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
     console.clear();
     this.displayWelcome();
 
-    const decoder = new TextDecoder();
     const encoder = new TextEncoder();
-
-    // Set stdin to non-raw mode for better line editing
-    Deno.stdin.setRaw(false);
 
     while (this.running) {
       // Display prompt
       await Deno.stdout.write(encoder.encode(this.getPrompt()));
 
-      // Read input
-      const buffer = new Uint8Array(1024);
-      const n = await Deno.stdin.read(buffer);
+      // Read input with tab completion
+      const input = await this.readLineWithCompletion();
 
-      if (n === null) {
+      if (input === null) {
         // EOF reached (Ctrl+D)
         this.exit();
         break;
       }
-
-      const input = decoder.decode(buffer.subarray(0, n)).trim();
 
       // Process the command
       await this.processCommand(input);

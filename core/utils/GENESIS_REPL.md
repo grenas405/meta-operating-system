@@ -4,7 +4,7 @@
 
 ## Overview
 
-The **Genesis REPL** is a dedicated interactive command-line interface for the Deno Genesis framework, featuring a stunning cyberpunk-inspired design with neon colors and modern developer experience.
+The **Genesis REPL** is a dedicated interactive command-line interface for the Deno Genesis Meta Operating System, featuring a stunning cyberpunk-inspired design with neon colors and modern developer experience.
 
 ## Features
 
@@ -32,7 +32,7 @@ The **Genesis REPL** is a dedicated interactive command-line interface for the D
 
 #### System Commands
 - `help` (aliases: `h`, `?`) - Display available commands
-- `status` - Show Genesis framework and site status
+- `status` - Show Genesis Meta OS and site status
 - `version` (alias: `v`) - Display version information
 - `history` - Show command history
 - `clear` (alias: `cls`) - Clear screen
@@ -93,7 +93,7 @@ The Genesis REPL is **separate** from the Meta-OS kernel REPL:
 ### Clean Separation of Concerns
 
 ```
-Genesis Framework
+Genesis Meta Operating System
 ├── genesis-repl.ts      ← Site/project management (THIS)
 │   ├── init, new, db
 │   ├── dev, deploy
@@ -146,15 +146,23 @@ Following Unix principles with modern flair:
 3. **Composable**: Every command is a building block
 4. **Self-documenting**: The system explains itself
 
+## Features
+
+### Tab Autocomplete ✨
+- Press **Tab** to autocomplete commands
+- Single match: Automatically completes the command
+- Multiple matches: Shows all available options
+- Works with both primary commands and aliases
+
 ## Future Enhancements
 
 Potential additions:
-- Command autocompletion
 - Syntax highlighting for arguments
 - Interactive command builders
 - Real-time site monitoring
 - Integration with git workflows
 - Plugin system for custom commands
+- Command history navigation with up/down arrows
 
 ## Contributing
 
@@ -167,5 +175,5 @@ When adding new commands to the Genesis REPL:
 
 ---
 
-**Built with ❤️ using Deno Genesis Framework**
+**Built with ❤️ using Deno Genesis Meta Operating System**
 *Unix Philosophy + Modern Runtime = Revolutionary Development*
