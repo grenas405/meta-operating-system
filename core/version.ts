@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write o--allow-run --allow-net --allow-env
 
-// git-version.ts - Git-based version management
+// version.ts - Git-based version management
 const VERSION_FILE_PATH = "./VERSION";
 
 // ============================================================================
@@ -33,57 +33,61 @@ interface GitCommandResult {
 // ============================================================================
 
 /**
- * 🔧 Execute git command and return result
+ * ⚙️ Execute a git command using Deno native APIs
  *
- * UNIX PHILOSOPHY:
- * - Do one thing well: Execute git commands
- * - Make it a filter: Input (command) → Output (result)
- * - Explicit error handling: Returns result object
+ * Low-level function that executes git commands and returns structured results.
+ * Uses Deno.Command for native command execution without shell.
  *
- * @param {string[]} args - Git command arguments
- * @returns {Promise<GitCommandResult>} Command execution result
+ * DESIGN:
+ * - Pure Deno native API (no external dependencies)
+ * - Direct process execution (no shell interpretation)
+ * - Captures both stdout and stderr
+ * - Trims whitespace from output
+ * - Type-safe result structure
+ *
+ * @param {string[]} args - Git command arguments (without 'git' prefix)
+ * @returns {Promise<GitCommandResult>} Structured command result
  *
  * @example
  * ```typescript
- * const result = await executeGitCommand(["describe", "--tags"]);
+ * // Get current branch
+ * const result = await executeGitCommand(["branch", "--show-current"]);
  * if (result.success) {
- *   console.log("Latest tag:", result.output);
+ *   console.log(`Branch: ${result.output}`);
  * }
+ *
+ * // Get commit hash
+ * const hash = await executeGitCommand(["rev-parse", "HEAD"]);
  * ```
  */
 async function executeGitCommand(args: string[]): Promise<GitCommandResult> {
   try {
-    const process = Deno.run({
-      cmd: ["git", ...args],
+    // Create command using Deno native API
+    const command = new Deno.Command("git", {
+      args,
       stdout: "piped",
       stderr: "piped",
     });
 
-    const [output, errorOutput] = await Promise.all([
-      process.output(),
-      process.stderrOutput(),
-    ]);
+    // Execute command and wait for completion
+    const { code, stdout, stderr } = await command.output();
 
-    const status = await process.status();
-    process.close();
+    // Decode output streams
+    const output = new TextDecoder().decode(stdout).trim();
+    const error = new TextDecoder().decode(stderr).trim();
 
-    if (status.success) {
-      return {
-        success: true,
-        output: new TextDecoder().decode(output).trim(),
-      };
-    } else {
-      return {
-        success: false,
-        output: "",
-        error: new TextDecoder().decode(errorOutput).trim(),
-      };
-    }
+    // Return structured result
+    return {
+      success: code === 0,
+      output,
+      error: error || undefined,
+    };
   } catch (error) {
+    // Handle execution errors (e.g., git not found)
     return {
       success: false,
       output: "",
-      error: `Failed to execute git command: ${error.message}`,
+      error: error instanceof Error ? error.message : String(error),
     };
   }
 }
