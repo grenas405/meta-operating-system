@@ -5,12 +5,12 @@
  */
 
 // Server
-export { HTTPServer } from "../server.ts";
-export type { ServerConfig } from "../server.ts";
+export { HTTPServer } from "./server.ts";
+export type { ServerConfig } from "./server.ts";
 // Router
 
-export { createRouter, Router } from "../router.ts";
-export type { RouteHandler } from "../router.ts";
+export { createRouter, Router } from "./router.ts";
+export type { RouteHandler } from "./router.ts";
 
 // Middleware
 export {
@@ -23,16 +23,16 @@ export {
   requestId,
   security,
   timing,
-} from "../middleware/index.ts";
-export { createContext } from "./context.ts";
-export type { Context, Handler, Middleware } from "./context.ts";
+} from "./middleware/index.ts";
+export { createContext } from "./utils/context.ts";
+export type { Context, Handler, Middleware } from "./utils/context.ts";
 
 // Performance Monitoring
 export {
   createPerformanceMiddleware,
   PerformanceAnalyzer,
   PerformanceMonitor,
-} from "../middleware/performanceMonitor.ts";
+} from "./middleware/performanceMonitor.ts";
 
 // Response helpers
 export {
@@ -47,8 +47,8 @@ export {
   status,
   text,
   unauthorized,
-} from "./response.ts";
-export type { ResponseOptions } from "./response.ts";
+} from "./utils/response.ts";
+export type { ResponseOptions } from "./utils/response.ts";
 
 // Body parsers
 export {
@@ -57,7 +57,7 @@ export {
   multipart,
   text as textParser,
   urlencoded,
-} from "./parsers.ts";
+} from "./utils/parsers.ts";
 
 // Validation
 export {
@@ -74,8 +74,8 @@ export {
   validate,
   ValidationError,
   validator,
-} from "./validator.ts";
-export type { Schema, ValidationRule, ValidationSchema } from "./validator.ts";
+} from "./utils/validator.ts";
+export type { Schema, ValidationRule, ValidationSchema } from "./utils/validator.ts";
 
 // Error Handling
 export {
@@ -91,8 +91,8 @@ export {
   NotFoundError,
   RateLimitError,
   ValidationError as AppValidationError,
-} from "../middleware/errorHandlerMiddleware.ts";
-export type { ErrorConfig } from "../middleware/errorHandlerMiddleware.ts";
+} from "./middleware/errorHandlerMiddleware.ts";
+export type { ErrorConfig } from "./middleware/errorHandlerMiddleware.ts";
 
 // Health Check
 export {
@@ -101,14 +101,14 @@ export {
   HealthCheckPresets,
   HealthCheckUtils,
   HealthMonitor,
-} from "../middleware/healthCheckMiddlware.ts";
+} from "./middleware/healthCheckMiddlware.ts";
 export type {
   DependencyHealth,
   HealthCheckConfig,
   HealthCheckResult,
   ResourceHealth,
   SystemHealth,
-} from "../middleware/healthCheckMiddlware.ts";
+} from "./middleware/healthCheckMiddlware.ts";
 
 // Logging
 export {
@@ -116,8 +116,8 @@ export {
   HeaderSanitizer,
   Logger,
   LoggingUtils,
-} from "../middleware/loggingMiddleware.ts";
-export type { LoggingConfig } from "../middleware/loggingMiddleware.ts";
+} from "./middleware/loggingMiddleware.ts";
+export type { LoggingConfig } from "./middleware/loggingMiddleware.ts";
 
 // Security
 export {
@@ -125,5 +125,5 @@ export {
   SecurityMonitor,
   SecurityPresets,
   SecurityValidator,
-} from "../middleware/securityMiddleware.ts";
-export type { SecurityConfig } from "../middleware/securityMiddleware.ts";
+} from "./middleware/securityMiddleware.ts";
+export type { SecurityConfig } from "./middleware/securityMiddleware.ts";
