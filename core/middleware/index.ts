@@ -1,4 +1,4 @@
-import { ConsoleStyler } from "../utils/console-styler/mod.ts";
+import type { ILogger } from "../interfaces/ILogger.ts";
 import { finalizeResponse } from "../utils/context.ts";
 import type { Context, Handler, Middleware } from "../utils/context.ts";
 import {
@@ -55,9 +55,9 @@ export function compose(
 }
 
 /**
- * Logger middleware - logs request method and path with colors and emojis
+ * Logger middleware - logs request method and path
  */
-export function logger(): Middleware {
+export function logger(logger: ILogger): Middleware {
   return async (ctx, next) => {
     const start = Date.now();
     const response = await next();
@@ -67,7 +67,7 @@ export function logger(): Middleware {
     const contentLength = response.headers.get("content-length");
     const size = contentLength ? parseInt(contentLength, 10) : undefined;
 
-    ConsoleStyler.logRequest(
+    logger.logRequest(
       ctx.request.method,
       ctx.url.pathname,
       response.status,

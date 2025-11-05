@@ -5,6 +5,7 @@
 // ================================================================================
 
 import { ConsoleStyler, ColorSystem } from "../utils/console-styler/mod.ts";
+import type { ILogger } from "../interfaces/ILogger.ts";
 //
 // UNIX PHILOSOPHY IMPLEMENTATION:
 // --------------------------------
@@ -1272,6 +1273,7 @@ function generateRequestId(): string {
  */
 export function createPerformanceMiddleware(
   monitor: PerformanceMonitor,
+  logger: ILogger,
   isDevelopment: boolean = false,
 ) {
   // Return the actual middleware function
@@ -1351,21 +1353,13 @@ export function createPerformanceMiddleware(
       // -----------------------------------------------------------------------
 
       if (isDevelopment) {
-        // Color-coded console output based on status code using ConsoleStyler
-        const colors = new ColorSystem();
-        const statusColor = status >= 400
-          ? "red"
-          : status >= 300
-          ? "yellow"
-          : "green";
-
-        // Log format: 📊 METHOD PATH - STATUS (TIME) [ID]
-        const logMessage = `📊 ${method} ${path} - ${colors.colorize(status.toString(), statusColor)} (${responseTime}ms) [${requestId}]`;
-        ConsoleStyler.logInfo(logMessage);
+        // Log format: METHOD PATH - STATUS (TIME) [ID]
+        const logMessage = `📊 ${method} ${path} - ${status} (${responseTime}ms) [${requestId}]`;
+        logger.logInfo(logMessage);
 
         // Warn about slow requests (>1000ms)
         if (responseTime > 1000) {
-          ConsoleStyler.logWarning(`Slow request detected: ${responseTime}ms for ${method} ${path}`);
+          logger.logWarning(`Slow request detected: ${responseTime}ms for ${method} ${path}`);
         }
       }
 
@@ -1398,14 +1392,14 @@ export function createPerformanceMiddleware(
       // Log error in development mode
       if (isDevelopment) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        ConsoleStyler.logError(
+        logger.logError(
           `Request failed [${requestId}] after ${responseTime}ms`,
           { error: errorMessage },
         );
 
         // Optional: log full stack trace
         if (error instanceof Error && error.stack) {
-          ConsoleStyler.logError("Stack trace", { stack: error.stack });
+          logger.logError("Stack trace", { stack: error.stack });
         }
       }
 

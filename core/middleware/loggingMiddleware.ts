@@ -185,7 +185,8 @@ class LoggerStyler {
    * Colorize text using ConsoleStyler's color system
    */
   static colorize(text: string, color: string): string {
-    return this.colors.colorize(text, color);
+    // Cast to any to handle ConsoleStyler's complex color type unions
+    return ColorSystem.colorize(text, color as any);
   }
 
   /**

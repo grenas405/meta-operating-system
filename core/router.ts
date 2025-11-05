@@ -9,7 +9,7 @@ import type { PerformanceMonitor } from "./middleware/performanceMonitor.ts";
 import type { Context, Middleware } from "./utils/context.ts";
 import { createContext } from "./utils/context.ts";
 import { badRequest, json, notFound } from "./utils/response.ts";
-import { ConsoleStyler } from "./utils/console-styler/mod.ts";
+import type { ILogger } from "./interfaces/ILogger.ts";
 import {
   optionalString,
   requiredEmail,
@@ -30,6 +30,11 @@ interface Route {
 export class Router {
   private routes: Route[] = [];
   private middleware: Middleware[] = [];
+  private logger: ILogger;
+
+  constructor(logger: ILogger) {
+    this.logger = logger;
+  }
 
   /**
    * Add middleware to the router
@@ -55,8 +60,8 @@ export class Router {
     const pattern = new URLPattern({ pathname: patternPath });
     this.routes.push({ method, pattern, handler, middleware });
 
-    // Log route registration with colors
-    ConsoleStyler.logRoute(method, path, "Registered route");
+    // Log route registration
+    this.logger.logDebug(`Route registered: ${method} ${path}`);
 
     return this;
   }
@@ -181,7 +186,7 @@ export class Router {
     const match = this.findRoute(request.method, url);
 
     if (!match) {
-      ConsoleStyler.logWarning(
+      this.logger.logWarning(
         `Route not found: ${request.method} ${url.pathname}`,
         {
           method: request.method,
@@ -211,7 +216,7 @@ export class Router {
    * Create a sub-router with a prefix
    */
   route(prefix: string): Router {
-    const subRouter = new Router();
+    const subRouter = new Router(this.logger);
 
     // Wrap sub-router to handle prefixed paths
     this.all(`${prefix}/*`, async (ctx: Context) => {
@@ -240,6 +245,7 @@ export interface RouteRegistrationContext {
     port: number;
     hostname: string;
   };
+  logger: ILogger;
 }
 
 export function registerCoreRoutes(
@@ -314,7 +320,7 @@ export function registerCoreRoutes(
         createdAt: new Date().toISOString(),
       };
 
-      ConsoleStyler.logSuccess("User created", createdUser);
+      context.logger.logSuccess("User created", createdUser);
 
       return json(createdUser, { status: 201 });
     },
@@ -327,7 +333,7 @@ export function registerCoreRoutes(
       return badRequest("No form data provided");
     }
 
-    ConsoleStyler.logInfo("Contact form submitted", body);
+    context.logger.logInfo("Contact form submitted", body);
 
     return json({
       message: "Contact form received",
@@ -355,7 +361,7 @@ export function registerCoreRoutes(
       size: file.size,
     }));
 
-    ConsoleStyler.logSuccess(`Received ${files.length} file(s)`, fileInfo);
+    context.logger.logSuccess(`Received ${files.length} file(s)`, { files: fileInfo });
 
     return json({
       message: "Files uploaded successfully",
@@ -367,6 +373,6 @@ export function registerCoreRoutes(
 /**
  * Create a new router instance
  */
-export function createRouter(): Router {
-  return new Router();
+export function createRouter(logger: ILogger): Router {
+  return new Router(logger);
 }

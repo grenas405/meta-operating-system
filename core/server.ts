@@ -123,14 +123,14 @@ class HTTPServer {
     await this.init();
 
     // Create router and register middleware
-    const router = createRouter();
+    const router = createRouter(this.logger);
 
     // Add middleware
     router.use(errorHandler());
     router.use(
-      createPerformanceMiddleware(this.performanceMonitor, this.config.debug),
+      createPerformanceMiddleware(this.performanceMonitor, this.logger, this.config.debug),
     );
-    router.use(logger());
+    router.use(logger(this.logger));
     router.use(timing());
     router.use(requestId());
     router.use(bodyParser());
@@ -144,6 +144,7 @@ class HTTPServer {
         port: this.config.port,
         hostname: this.config.hostname,
       },
+      logger: this.logger,
     });
 
     this.log(
