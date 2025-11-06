@@ -31,7 +31,7 @@ export class HeartbeatServer {
   constructor(config: HeartbeatServerConfig = {}) {
     this.config = {
       port: config.port ?? 3000,
-      hostname: config.hostname ?? "localhost",
+      hostname: config.hostname ?? "127.0.0.1",
     };
     this.abortController = new AbortController();
   }
