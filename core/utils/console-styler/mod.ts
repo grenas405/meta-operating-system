@@ -10,11 +10,25 @@ export { ConfigBuilder } from "./core/config.ts";
 export { ColorSystem } from "./core/colors.ts";
 export { Formatter } from "./core/formatter.ts";
 export { ConsoleStyler } from "./core/console.ts";
-export { RemoteLogger, commonDestinations, createRemoteLogger } from "./core/remote-logger.ts";
-export type { RemoteDestination, RemoteLoggerConfig } from "./core/remote-logger.ts";
+export {
+  commonDestinations,
+  createRemoteLogger,
+  RemoteLogger,
+} from "./core/remote-logger.ts";
+export type {
+  RemoteDestination,
+  RemoteLoggerConfig,
+} from "./core/remote-logger.ts";
 
 // Types
-export type { LogEntry, LogLevel, LogOutput, Plugin, StylerConfig, Theme } from "./core/config.ts";
+export type {
+  LogEntry,
+  LogLevel,
+  LogOutput,
+  Plugin,
+  StylerConfig,
+  Theme,
+} from "./core/config.ts";
 
 // Components
 export { TableRenderer } from "./components/tables.ts";
@@ -24,7 +38,10 @@ export { BoxRenderer } from "./components/boxes.ts";
 export type { BoxOptions, BoxStyle } from "./components/boxes.ts";
 
 export { ProgressBar, Spinner } from "./components/progress.ts";
-export type { ProgressBarOptions, SpinnerOptions } from "./components/progress.ts";
+export type {
+  ProgressBarOptions,
+  SpinnerOptions,
+} from "./components/progress.ts";
 
 export { BannerRenderer } from "./components/banners.ts";
 export type { BannerOptions } from "./components/banners.ts";

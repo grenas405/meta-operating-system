@@ -282,7 +282,6 @@ function createServerMode(): MonitorMode {
       const { HeartbeatServer } = await import("./server.ts");
       heartbeatServer = new HeartbeatServer({
         port: 3000,
-        hostname: "0.0.0.0",
       });
 
       // Start server in background (non-blocking)
@@ -297,7 +296,7 @@ function createServerMode(): MonitorMode {
       console.log("SERVER_READY");
       ConsoleStyler.logSuccess("Heartbeat server started", {
         port: 3000,
-        hostname: "0.0.0.0",
+        hostname: "127.0.0.1",
         endpoints: [
           "GET /health",
           "GET /metrics",
