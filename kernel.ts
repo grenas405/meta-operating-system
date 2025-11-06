@@ -563,8 +563,8 @@ class Kernel {
       buildDate: new Date().toISOString(),
       environment: this.config.environment,
       port: this.config.serverPort,
-      author: "Meta-OS Team",
-      repository: "github.com/meta-os/meta-operating-system",
+      author: "Pedro M. Dominguez",
+      repository: "https://github.com/grenas405/meta-operating-system",
       description: "Meta Operating System - Process Orchestrator",
       features: [
         "Process Management",

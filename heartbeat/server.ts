@@ -5,7 +5,12 @@
 
 import { createRouter } from "../core/router.ts";
 import { json } from "../core/utils/response.ts";
-import { errorHandler, logger, requestId, timing } from "../core/middleware/index.ts";
+import {
+  errorHandler,
+  logger,
+  requestId,
+  timing,
+} from "../core/middleware/index.ts";
 import type { Context } from "../core/utils/context.ts";
 import type { SystemMetrics } from "./types/SystemMetrics.ts";
 import { ConsoleStyler } from "../core/utils/console-styler/mod.ts";
@@ -26,7 +31,7 @@ export class HeartbeatServer {
   constructor(config: HeartbeatServerConfig = {}) {
     this.config = {
       port: config.port ?? 3000,
-      hostname: config.hostname ?? "0.0.0.0",
+      hostname: config.hostname ?? "localhost",
     };
     this.abortController = new AbortController();
   }
@@ -117,22 +122,20 @@ export class HeartbeatServer {
           "GET /metrics/summary - Summary statistics",
           "GET /health - Health check",
         ],
-      })
-    );
+      }));
 
     router.get("/health", () =>
       json({
         status: "healthy",
         timestamp: Date.now(),
         metricsAvailable: this.latestMetrics !== null,
-      })
-    );
+      }));
 
     router.get("/metrics", () => {
       if (!this.latestMetrics) {
         return json(
           { error: "No metrics available yet" },
-          { status: 503 }
+          { status: 503 },
         );
       }
       return json(this.latestMetrics);
@@ -149,13 +152,13 @@ export class HeartbeatServer {
       if (this.metricsHistory.length === 0) {
         return json(
           { error: "No metrics history available" },
-          { status: 503 }
+          { status: 503 },
         );
       }
 
       // Calculate summary statistics
-      const cpuValues = this.metricsHistory.map(m => m.cpu_usage_percent);
-      const memValues = this.metricsHistory.map(m => m.memory_usage_percent);
+      const cpuValues = this.metricsHistory.map((m) => m.cpu_usage_percent);
+      const memValues = this.metricsHistory.map((m) => m.memory_usage_percent);
 
       const avgCpu = cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length;
       const maxCpu = Math.max(...cpuValues);
@@ -196,7 +199,7 @@ export class HeartbeatServer {
           onListen: ({ port, hostname }) => {
             ConsoleStyler.logSuccess(
               `Server listening on http://${hostname}:${port}`,
-              { port, hostname }
+              { port, hostname },
             );
             ConsoleStyler.logInfo("Available endpoints:");
             console.log("  GET  /              - API information");
@@ -211,10 +214,12 @@ export class HeartbeatServer {
           try {
             return await router.handle(request);
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
+            const errorMessage = error instanceof Error
+              ? error.message
+              : String(error);
             ConsoleStyler.logError(
               `Unhandled error in request handler: ${errorMessage}`,
-              { url: request.url, method: request.method }
+              { url: request.url, method: request.method },
             );
 
             return new Response(
@@ -222,16 +227,18 @@ export class HeartbeatServer {
               {
                 status: 500,
                 headers: { "Content-Type": "application/json" },
-              }
+              },
             );
           }
-        }
+        },
       );
 
       await this.server.finished;
       ConsoleStyler.logSuccess("Server shutdown complete");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
       ConsoleStyler.logError(`Failed to start server: ${errorMessage}`, {
         port: this.config.port,
         hostname: this.config.hostname,
