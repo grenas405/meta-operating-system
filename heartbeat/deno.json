@@ -1,7 +1,7 @@
 {
   "tasks": {
-    "dev": "deno run --allow-run --allow-read --allow-env main.ts",
-    "start": "deno run --allow-run --allow-read --allow-env main.ts",
+    "dev": "deno run --allow-run --allow-read --allow-write --allow-env --allow-sys main.ts",
+    "start": "deno run --allow-run --allow-read --allow-write --allow-env --allow-sys main.ts",
     "compact": "deno run --allow-run --allow-read --allow-env main.ts --mode compact",
     "sparkline": "deno run --allow-run --allow-read --allow-env main.ts --mode sparkline",
     "alerts": "deno run --allow-run --allow-read --allow-env main.ts --mode alerts",
@@ -18,7 +18,7 @@
     "tron": "deno run --allow-run --allow-read --allow-env main.ts --mode tron",
     "cyberpunk": "deno run --allow-run --allow-read --allow-env main.ts --mode cyberpunk",
     "cycle": "deno run --allow-run --allow-read --allow-env main.ts --mode cycle",
-    "modes": "deno run --allow-run --allow-read --allow-env main.ts --list",
+    "modes": "deno run --allow-run --allow-read --allow-env --allow-sys main.ts --list",
     "service": "deno run --allow-run --allow-read --allow-env service-mode.ts",
     "demo": "deno run --allow-env --allow-read utils/console-styler/unit-test.ts",
     "lifeline": "deno run --allow-env --allow-read lifeline-demo.ts"

@@ -269,10 +269,14 @@ async function runMonitor(modeKey: MonitorModeKey): Promise<void> {
 
 function createServerMode(): MonitorMode {
   let heartbeatServer: any = null;
+  const LOG_FILE = new URL("./heartbeat.json", import.meta.url).pathname;
+  const INTERVAL_MS = 60_000; // 1 minute
+  let lastLogTime = 0;
+  const metricsBuffer: SystemMetrics[] = [];
 
   return {
     label: "HTTP Server",
-    description: "Serve metrics via HTTP API on port 3000.",
+    description: "Serve metrics via HTTP API on port 3000 + log to heartbeat.json.",
     async onStart() {
       // Import and create HeartbeatServer
       const { HeartbeatServer } = await import("./server.ts");
@@ -299,11 +303,58 @@ function createServerMode(): MonitorMode {
           "GET /metrics",
         ],
       });
+      ConsoleStyler.logSuccess("File logging enabled", {
+        file: LOG_FILE,
+        interval: "1 minute",
+      });
     },
-    onMetrics(metrics) {
+    async onMetrics(metrics) {
       // Update metrics in the server
       if (heartbeatServer) {
         heartbeatServer.updateMetrics(metrics);
+      }
+
+      // Add metrics to buffer for file logging
+      metricsBuffer.push(metrics);
+
+      // Check if 1 minute has passed
+      const now = Date.now();
+      if (now - lastLogTime >= INTERVAL_MS) {
+        if (metricsBuffer.length > 0) {
+          try {
+            // Read existing data
+            let existingData: SystemMetrics[] = [];
+            try {
+              const fileContent = await Deno.readTextFile(LOG_FILE);
+              existingData = JSON.parse(fileContent);
+            } catch {
+              // File doesn't exist or is empty, start fresh
+            }
+
+            // Append new metrics
+            const allMetrics = [...existingData, ...metricsBuffer];
+
+            // Write to file
+            await Deno.writeTextFile(
+              LOG_FILE,
+              JSON.stringify(allMetrics, null, 2),
+            );
+
+            ConsoleStyler.logInfo("Metrics logged", {
+              count: metricsBuffer.length,
+              total: allMetrics.length,
+              timestamp: new Date().toISOString(),
+            });
+
+            // Clear buffer
+            metricsBuffer.length = 0;
+            lastLogTime = now;
+          } catch (error) {
+            ConsoleStyler.logError("Failed to write metrics to file", {
+              error: String(error),
+            });
+          }
+        }
       }
 
       // Silent mode - only log critical alerts
@@ -318,6 +369,15 @@ function createServerMode(): MonitorMode {
           usage: `${metrics.memory_usage_percent.toFixed(1)}%`,
         });
       }
+    },
+    onShutdown() {
+      // Write any remaining buffered metrics
+      if (metricsBuffer.length > 0) {
+        ConsoleStyler.logInfo("Flushing remaining metrics", {
+          count: metricsBuffer.length,
+        });
+      }
+      ConsoleStyler.logSuccess("File logging stopped", { file: LOG_FILE });
     },
   };
 }
