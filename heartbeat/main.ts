@@ -203,7 +203,10 @@ async function pumpStderr(
   }
 }
 
-async function runMonitor(modeKey: MonitorModeKey, logger: ILogger): Promise<void> {
+async function runMonitor(
+  modeKey: MonitorModeKey,
+  logger: ILogger,
+): Promise<void> {
   const factory = MODE_FACTORIES[modeKey];
   const mode = factory(logger);
 
@@ -280,7 +283,8 @@ function createServerMode(logger: ILogger): MonitorMode {
 
   return {
     label: "HTTP Server",
-    description: "Serve metrics via HTTP API on port 3000 + log to heartbeat.json.",
+    description:
+      "Serve metrics via HTTP API on port 3000 + log to heartbeat.json.",
     async onStart() {
       // Import and create HeartbeatServer
       const { HeartbeatServer } = await import("./server.ts");
@@ -298,7 +302,7 @@ function createServerMode(logger: ILogger): MonitorMode {
       await delay(1000);
 
       // Log server startup information
-      console.log("SERVER_READY");
+      logger.logSuccess("SERVER_READY");
       logger.logSuccess("Heartbeat server started", {
         port: 3000,
         hostname: "127.0.0.1",

@@ -14,7 +14,10 @@ import {
 import type { Context } from "../core/utils/context.ts";
 import type { SystemMetrics } from "./types/SystemMetrics.ts";
 import type { ILogger } from "../core/interfaces/ILogger.ts";
-import { createConsoleLogger } from "../core/utils/console-styler/mod.ts";
+import {
+  ConsoleStyler,
+  createConsoleLogger,
+} from "../core/utils/console-styler/mod.ts";
 
 interface HeartbeatServerConfig {
   port?: number;
@@ -172,12 +175,36 @@ export class HeartbeatServer {
               `Server listening on http://${hostname}:${port}`,
               { port, hostname },
             );
-            this.logger.logInfo("Available endpoints:");
-            console.log("  GET  /              - API information");
-            console.log("  GET  /health        - Health check");
-            console.log("  GET  /metrics       - Latest system metrics");
-            console.log("  GET  /metrics/history - Last 60 seconds of metrics");
-            console.log("  GET  /metrics/summary - Summary statistics");
+            this.logger.logSection(
+              "Available Endpoints",
+              "brightCyan",
+              "heavy",
+            );
+
+            // Display endpoints with colored formatting matching actual request logs
+            ConsoleStyler.logRoute("GET", "/", "API information");
+            ConsoleStyler.logRoute("GET", "/health", "Health check");
+            ConsoleStyler.logRoute("GET", "/metrics", "Latest system metrics");
+            ConsoleStyler.logRoute(
+              "GET",
+              "/metrics/history",
+              "Last 60 seconds of metrics",
+            );
+            ConsoleStyler.logRoute(
+              "GET",
+              "/metrics/summary",
+              "Summary statistics",
+            );
+            console.log("");
+
+            this.logger.logInfo("🎨 Colored request logging enabled:");
+            this.logger.logInfo(
+              "   • HTTP method (GET=green, POST=blue, DELETE=red, etc.)",
+            );
+            this.logger.logInfo(
+              "   • Status code (2xx=green, 4xx=orange, 5xx=red)",
+            );
+            this.logger.logInfo("   • Response time (<50ms=green, >200ms=red)");
             console.log("");
           },
         },
