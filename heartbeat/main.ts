@@ -1,4 +1,4 @@
-import { ConsoleStyler } from "./utils/console-styler/ConsoleStyler.ts";
+import { BoxRenderer, ColorSystem, ConsoleStyler } from "../core/utils/console-styler/mod.ts";
 import { LifelineAnimator } from "./utils/LifelineAnimator.ts";
 import { GENESIS_QUOTES } from "./constants/genesis-quotes.ts";
 import type { SystemMetrics } from "./types/SystemMetrics.ts";
@@ -41,6 +41,7 @@ const MODE_FACTORIES = {
   tron: createTronMode,
   cyberpunk: createCyberpunkMode,
   cycle: createCycleMode,
+  window: createWindowMode,
 } as const;
 
 type MonitorModeKey = keyof typeof MODE_FACTORIES;
@@ -62,9 +63,9 @@ function formatMemory(megabytes: number): string {
 
 function chooseCpuColor(
   percent: number,
-): "brightGreen" | "brightYellow" | "brightRed" {
+): "brightGreen" | "lightYellow" | "brightRed" {
   if (percent > 80) return "brightRed";
-  if (percent > 60) return "brightYellow";
+  if (percent > 60) return "lightYellow";
   return "brightGreen";
 }
 
@@ -1612,7 +1613,7 @@ function createQuantumMode(): MonitorMode {
           color = ConsoleStyler.colors256.orange;
         } else {
           char = "▒";
-          color = ConsoleStyler.colors256.brightYellow;
+          color = ConsoleStyler.colors256.lightYellow;
         }
       } else {
         // Superposition state (normal load) - wave characters
@@ -1746,11 +1747,11 @@ function createNeuralMode(): MonitorMode {
       const memNorm = metrics.memory_usage_percent / 100;
 
       // Update node activations based on CPU per core
-      const coreCount = metrics.per_core_usage?.length || 8;
+      const coreCount = metrics.cpu_cores.length || 8;
       nodes.forEach((row, rowIndex) => {
         row.forEach((node, colIndex) => {
           const coreIndex = (rowIndex * NODES_PER_ROW + colIndex) % coreCount;
-          const coreUsage = metrics.per_core_usage?.[coreIndex] || cpuNorm * 100;
+          const coreUsage = metrics.cpu_cores[coreIndex]?.usage_percent || cpuNorm * 100;
 
           // Smooth activation with decay
           const targetActivation = coreUsage / 100;
@@ -1789,7 +1790,7 @@ function createNeuralMode(): MonitorMode {
             color = ConsoleStyler.colors256.orange;
           } else if (activation > 0.4) {
             nodeChar = "●";
-            color = ConsoleStyler.colors256.brightYellow;
+            color = ConsoleStyler.colors256.lightYellow;
           } else if (activation > 0.2) {
             nodeChar = "◉";
             color = ConsoleStyler.colors256.cyan;
@@ -1840,7 +1841,7 @@ function createNeuralMode(): MonitorMode {
       console.log("");
       ConsoleStyler.logCustom(
         `Network Activity: ${(cpuNorm * 100).toFixed(1)}% | Cores: ${
-          metrics.per_core_usage?.length || "N/A"
+          metrics.cpu_cores.length || "N/A"
         }`,
         "⚡",
         chooseCpuColor(metrics.cpu_usage_percent),
@@ -2157,10 +2158,10 @@ function createCyberpunkMode(): MonitorMode {
         chooseMemoryColor(metrics.memory_usage_percent),
       );
 
-      if (metrics.per_core_usage && metrics.per_core_usage.length > 0) {
-        const coreCount = metrics.per_core_usage.length;
+      if (metrics.cpu_cores && metrics.cpu_cores.length > 0) {
+        const coreCount = metrics.cpu_cores.length;
         const avgCore =
-          metrics.per_core_usage.reduce((a, b) => a + b, 0) / coreCount;
+          metrics.cpu_cores.reduce((a, b) => a + b.usage_percent, 0) / coreCount;
         ConsoleStyler.logCustom(
           `CORES: ${coreCount} | AVG: ${avgCore.toFixed(1)}%`,
           "⚡",
@@ -2276,6 +2277,154 @@ function createCycleMode(): MonitorMode {
       await currentMode.onMetrics(metrics);
     },
   };
+}
+
+function createWindowMode(): MonitorMode {
+  let windowStartLine = 0;
+  let isFirstRender = true;
+  const WINDOW_HEIGHT = 13; // Number of lines the window takes
+
+  const moveCursor = (line: number, col: number = 0) => {
+    Deno.stdout.writeSync(new TextEncoder().encode(`\x1b[${line};${col}H`));
+  };
+
+  const saveCursor = () => {
+    Deno.stdout.writeSync(new TextEncoder().encode("\x1b7"));
+  };
+
+  const restoreCursor = () => {
+    Deno.stdout.writeSync(new TextEncoder().encode("\x1b8"));
+  };
+
+  const clearLine = () => {
+    Deno.stdout.writeSync(new TextEncoder().encode("\x1b[2K"));
+  };
+
+  return {
+    label: "Compact Window",
+    description: "Non-intrusive metrics window that updates in place.",
+    onStart() {
+      // Reserve space for the window
+      console.log("\n".repeat(WINDOW_HEIGHT));
+
+      // Save initial position
+      const encoder = new TextEncoder();
+      Deno.stdout.writeSync(encoder.encode("\n💓 Heartbeat Monitor - Window Mode\n"));
+      Deno.stdout.writeSync(encoder.encode("Initializing system metrics...\n\n"));
+      windowStartLine = 3;
+    },
+    onMetrics(metrics) {
+      const timestamp = formatClockTime(metrics.timestamp);
+      const cpuColor = chooseCpuColor(metrics.cpu_usage_percent);
+      const memColor = chooseMemoryColor(metrics.memory_usage_percent);
+      const status = getStatusSymbol(
+        metrics.cpu_usage_percent,
+        metrics.memory_usage_percent,
+      );
+
+      // Build window content
+      const content: string[] = [];
+
+      // Header line
+      content.push(`${status} ${timestamp} - System Vitals`);
+      content.push("");
+
+      // CPU info
+      const cpuBar = renderCompactBar(metrics.cpu_usage_percent, 20);
+      content.push(
+        `${ColorSystem.colorize("CPU:", cpuColor)} ${cpuBar} ${
+          ColorSystem.colorize(
+            metrics.cpu_usage_percent.toFixed(1) + "%",
+            cpuColor,
+          )
+        }`,
+      );
+
+      // Memory info
+      const memBar = renderCompactBar(metrics.memory_usage_percent, 20);
+      content.push(
+        `${ColorSystem.colorize("MEM:", memColor)} ${memBar} ${
+          ColorSystem.colorize(
+            metrics.memory_usage_percent.toFixed(1) + "%",
+            memColor,
+          )
+        }`,
+      );
+
+      // Memory details
+      content.push(
+        `     ${formatMemory(metrics.memory_used_mb)} / ${
+          formatMemory(metrics.memory_total_mb)
+        }`,
+      );
+
+      // Swap if available
+      if (metrics.swap_total_mb > 0) {
+        const swapPercent = (metrics.swap_used_mb / metrics.swap_total_mb) * 100;
+        content.push(
+          `${ColorSystem.colorize("SWP:", "cyan")} ${
+            metrics.swap_used_mb.toFixed(0)
+          }MB / ${metrics.swap_total_mb.toFixed(0)}MB`,
+        );
+      }
+
+      // Alerts
+      if (metrics.cpu_spike_detected || metrics.memory_leak_suspected) {
+        content.push("");
+        if (metrics.cpu_spike_detected) {
+          content.push(
+            ColorSystem.colorize("⚠️  CPU spike detected!", "brightRed"),
+          );
+        }
+        if (metrics.memory_leak_suspected) {
+          content.push(
+            ColorSystem.colorize("⚠️  Memory leak suspected!", "brightRed"),
+          );
+        }
+      }
+
+      // Save cursor position
+      saveCursor();
+
+      // Move to window start and render
+      moveCursor(windowStartLine, 0);
+
+      // Clear the window area
+      for (let i = 0; i < WINDOW_HEIGHT; i++) {
+        clearLine();
+        console.log();
+      }
+
+      // Move back to window start
+      moveCursor(windowStartLine, 0);
+
+      // Render the box
+      BoxRenderer.render(content, {
+        style: "rounded",
+        padding: 0,
+        title: "💓 Heartbeat",
+        color: "cyan",
+        minWidth: 40,
+      });
+
+      // Restore cursor to end
+      restoreCursor();
+    },
+  };
+}
+
+function renderCompactBar(percent: number, width: number): string {
+  const filled = Math.round((percent / 100) * width);
+  const empty = width - filled;
+
+  const color = percent > 80
+    ? "brightRed"
+    : percent > 60
+    ? "orange"
+    : "brightGreen";
+
+  const bar = "█".repeat(filled) + "░".repeat(empty);
+  return ColorSystem.colorize(bar, color);
 }
 
 function createSparklineMode(): MonitorMode {

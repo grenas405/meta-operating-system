@@ -1,4 +1,4 @@
-import { ConsoleStyler } from "./console-styler/ConsoleStyler.ts";
+import { ConsoleStyler } from "../../core/utils/console-styler/mod.ts";
 
 /**
  * LifelineAnimator - Creates elegant ECG-style heartbeat animations
