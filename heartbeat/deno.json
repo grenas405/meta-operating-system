@@ -1,0 +1,29 @@
+{
+  "tasks": {
+    "dev": "deno run --allow-run --allow-read --allow-env main.ts",
+    "start": "deno run --allow-run --allow-read --allow-env main.ts",
+    "compact": "deno run --allow-run --allow-read --allow-env main.ts --mode compact",
+    "sparkline": "deno run --allow-run --allow-read --allow-env main.ts --mode sparkline",
+    "alerts": "deno run --allow-run --allow-read --allow-env main.ts --mode alerts",
+    "raw": "deno run --allow-run --allow-read --allow-env main.ts --mode raw",
+    "timeline": "deno run --allow-run --allow-read --allow-env main.ts --mode timeline",
+    "percore": "deno run --allow-run --allow-read --allow-env main.ts --mode percore",
+    "stats": "deno run --allow-run --allow-read --allow-env main.ts --mode stats",
+    "aurora": "deno run --allow-run --allow-read --allow-env main.ts --mode aurora",
+    "zen": "deno run --allow-run --allow-read --allow-env main.ts --mode zen",
+    "retro": "deno run --allow-run --allow-read --allow-env main.ts --mode retro",
+    "matrix": "deno run --allow-run --allow-read --allow-env main.ts --mode matrix",
+    "quantum": "deno run --allow-run --allow-read --allow-env main.ts --mode quantum",
+    "neural": "deno run --allow-run --allow-read --allow-env main.ts --mode neural",
+    "tron": "deno run --allow-run --allow-read --allow-env main.ts --mode tron",
+    "cyberpunk": "deno run --allow-run --allow-read --allow-env main.ts --mode cyberpunk",
+    "cycle": "deno run --allow-run --allow-read --allow-env main.ts --mode cycle",
+    "modes": "deno run --allow-run --allow-read --allow-env main.ts --list",
+    "service": "deno run --allow-run --allow-read --allow-env service-mode.ts",
+    "demo": "deno run --allow-env --allow-read utils/console-styler/unit-test.ts",
+    "lifeline": "deno run --allow-env --allow-read lifeline-demo.ts"
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@1"
+  }
+}

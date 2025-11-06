@@ -1,0 +1,22 @@
+[Unit]
+Description=Heartbeat System Monitor
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/grenas405/.local/src/heartbeat
+ExecStart=/home/grenas405/.deno/bin/deno task service
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Resource limits (optional, adjust as needed)
+# MemoryMax=256M
+# CPUQuota=50%
+
+# Environment variables (if needed)
+# Environment="DENO_DIR=/home/grenas405/.cache/deno"
+
+[Install]
+WantedBy=default.target
