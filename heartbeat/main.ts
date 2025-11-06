@@ -1,8 +1,9 @@
 import {
   BoxRenderer,
   ColorSystem,
-  ConsoleStyler,
+  createConsoleLogger,
 } from "../core/utils/console-styler/mod.ts";
+import type { ILogger } from "../core/interfaces/ILogger.ts";
 import { LifelineAnimator } from "./utils/LifelineAnimator.ts";
 import { GENESIS_QUOTES } from "./constants/genesis-quotes.ts";
 import type { SystemMetrics } from "./types/SystemMetrics.ts";
@@ -27,9 +28,9 @@ const STDERR_DECODER = new TextDecoder();
 const DEFAULT_MODE: MonitorModeKey = "server";
 
 const MODE_FACTORIES = {
-  window: createWindowMode,
-  server: createServerMode,
-  journal: createJournalMode,
+  window: (logger: ILogger) => createWindowMode(logger),
+  server: (logger: ILogger) => createServerMode(logger),
+  journal: (logger: ILogger) => createJournalMode(logger),
 } as const;
 
 type MonitorModeKey = keyof typeof MODE_FACTORIES;
@@ -124,20 +125,21 @@ function parseArgs(args: string[]): CliOptions {
   return options;
 }
 
-function printModeList(): void {
-  ConsoleStyler.logSection("Available Monitor Modes", "brightCyan", "heavy");
+function printModeList(logger: ILogger): void {
+  logger.logSection("Available Monitor Modes", "brightCyan", "heavy");
   for (
     const [key, factory] of Object.entries(MODE_FACTORIES) as Array<
-      [MonitorModeKey, () => MonitorMode]
+      [MonitorModeKey, (logger: ILogger) => MonitorMode]
     >
   ) {
-    const mode = factory();
+    const tempLogger = createConsoleLogger();
+    const mode = factory(tempLogger);
     console.log(`- ${key.padEnd(9)} ${mode.description}`);
   }
 }
 
-function printHelp(): void {
-  ConsoleStyler.logSection("Heartbeat Monitor CLI", "brightCyan", "heavy");
+function printHelp(logger: ILogger): void {
+  logger.logSection("Heartbeat Monitor CLI", "brightCyan", "heavy");
   console.log(
     "Usage: deno run --allow-run --allow-read --allow-env main.ts [options]",
   );
@@ -145,23 +147,24 @@ function printHelp(): void {
     "       deno run --allow-run --allow-read --allow-env main.ts [mode]\n",
   );
 
-  ConsoleStyler.logInfo("Options:");
+  logger.logInfo("Options:");
   console.log("  -m, --mode <mode>   Select monitor mode");
   console.log("  -l, --list          Show available modes");
   console.log("  -h, --help          Show this help message\n");
 
-  ConsoleStyler.logInfo("Modes:");
+  logger.logInfo("Modes:");
   for (
     const [key, factory] of Object.entries(MODE_FACTORIES) as Array<
-      [MonitorModeKey, () => MonitorMode]
+      [MonitorModeKey, (logger: ILogger) => MonitorMode]
     >
   ) {
-    const mode = factory();
+    const tempLogger = createConsoleLogger();
+    const mode = factory(tempLogger);
     console.log(`  ${key.padEnd(9)} ${mode.description}`);
   }
   console.log("");
 
-  ConsoleStyler.logInfo("Examples:");
+  logger.logInfo("Examples:");
   console.log(
     "  deno task start                 # Launch window mode monitor",
   );
@@ -179,6 +182,7 @@ function printHelp(): void {
 
 async function pumpStderr(
   reader: ReadableStreamDefaultReader<Uint8Array>,
+  logger: ILogger,
 ): Promise<void> {
   try {
     while (true) {
@@ -189,19 +193,19 @@ async function pumpStderr(
       const text = STDERR_DECODER.decode(value);
       const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
       for (const line of lines) {
-        ConsoleStyler.logWarning("Monitor stderr", { message: line });
+        logger.logWarning("Monitor stderr", { message: line });
       }
     }
   } catch (error) {
-    ConsoleStyler.logError("Failed to read stderr", { error: String(error) });
+    logger.logError("Failed to read stderr", { error: String(error) });
   } finally {
     reader.releaseLock();
   }
 }
 
-async function runMonitor(modeKey: MonitorModeKey): Promise<void> {
+async function runMonitor(modeKey: MonitorModeKey, logger: ILogger): Promise<void> {
   const factory = MODE_FACTORIES[modeKey];
-  const mode = factory();
+  const mode = factory(logger);
 
   await mode.onStart?.();
 
@@ -219,7 +223,7 @@ async function runMonitor(modeKey: MonitorModeKey): Promise<void> {
   const stdoutReader = process.stdout.getReader();
   const stderrReader = process.stderr?.getReader();
   const stderrPump = stderrReader
-    ? pumpStderr(stderrReader)
+    ? pumpStderr(stderrReader, logger)
     : Promise.resolve();
 
   try {
@@ -236,7 +240,7 @@ async function runMonitor(modeKey: MonitorModeKey): Promise<void> {
           const metrics = JSON.parse(line) as SystemMetrics;
           await mode.onMetrics(metrics);
         } catch (error) {
-          ConsoleStyler.logError("Failed to parse metrics", {
+          logger.logError("Failed to parse metrics", {
             line: line.substring(0, 100),
             error: String(error),
           });
@@ -244,7 +248,7 @@ async function runMonitor(modeKey: MonitorModeKey): Promise<void> {
       }
     }
   } catch (error) {
-    ConsoleStyler.logCritical("Error reading from monitor", {
+    logger.logCritical("Error reading from monitor", {
       error: String(error),
     });
   } finally {
@@ -255,7 +259,7 @@ async function runMonitor(modeKey: MonitorModeKey): Promise<void> {
   await stderrPump;
 
   if (!status.success) {
-    ConsoleStyler.logError("Monitor process exited with error", {
+    logger.logError("Monitor process exited with error", {
       code: status.code,
     });
   }
@@ -267,7 +271,7 @@ async function runMonitor(modeKey: MonitorModeKey): Promise<void> {
   }
 }
 
-function createServerMode(): MonitorMode {
+function createServerMode(logger: ILogger): MonitorMode {
   let heartbeatServer: any = null;
   const LOG_FILE = new URL("./heartbeat.json", import.meta.url).pathname;
   const INTERVAL_MS = 60_000; // 1 minute
@@ -282,11 +286,12 @@ function createServerMode(): MonitorMode {
       const { HeartbeatServer } = await import("./server.ts");
       heartbeatServer = new HeartbeatServer({
         port: 3000,
+        logger,
       });
 
       // Start server in background (non-blocking)
       heartbeatServer.start().catch((error: Error) => {
-        ConsoleStyler.logError("Server error", { error: error.message });
+        logger.logError("Server error", { error: error.message });
       });
 
       // Wait a bit for server to initialize
@@ -294,7 +299,7 @@ function createServerMode(): MonitorMode {
 
       // Log server startup information
       console.log("SERVER_READY");
-      ConsoleStyler.logSuccess("Heartbeat server started", {
+      logger.logSuccess("Heartbeat server started", {
         port: 3000,
         hostname: "127.0.0.1",
         endpoints: [
@@ -302,7 +307,7 @@ function createServerMode(): MonitorMode {
           "GET /metrics",
         ],
       });
-      ConsoleStyler.logSuccess("File logging enabled", {
+      logger.logSuccess("File logging enabled", {
         file: LOG_FILE,
         interval: "1 minute",
       });
@@ -339,7 +344,7 @@ function createServerMode(): MonitorMode {
               JSON.stringify(allMetrics, null, 2),
             );
 
-            ConsoleStyler.logInfo("Metrics logged", {
+            logger.logInfo("Metrics logged", {
               count: metricsBuffer.length,
               total: allMetrics.length,
               timestamp: new Date().toISOString(),
@@ -349,7 +354,7 @@ function createServerMode(): MonitorMode {
             metricsBuffer.length = 0;
             lastLogTime = now;
           } catch (error) {
-            ConsoleStyler.logError("Failed to write metrics to file", {
+            logger.logError("Failed to write metrics to file", {
               error: String(error),
             });
           }
@@ -358,13 +363,13 @@ function createServerMode(): MonitorMode {
 
       // Silent mode - only log critical alerts
       if (metrics.cpu_spike_detected) {
-        ConsoleStyler.logWarning("CPU spike detected", {
+        logger.logWarning("CPU spike detected", {
           usage: `${metrics.cpu_usage_percent.toFixed(1)}%`,
         });
       }
 
       if (metrics.memory_leak_suspected) {
-        ConsoleStyler.logWarning("Memory leak suspected", {
+        logger.logWarning("Memory leak suspected", {
           usage: `${metrics.memory_usage_percent.toFixed(1)}%`,
         });
       }
@@ -372,16 +377,16 @@ function createServerMode(): MonitorMode {
     onShutdown() {
       // Write any remaining buffered metrics
       if (metricsBuffer.length > 0) {
-        ConsoleStyler.logInfo("Flushing remaining metrics", {
+        logger.logInfo("Flushing remaining metrics", {
           count: metricsBuffer.length,
         });
       }
-      ConsoleStyler.logSuccess("File logging stopped", { file: LOG_FILE });
+      logger.logSuccess("File logging stopped", { file: LOG_FILE });
     },
   };
 }
 
-function createJournalMode(): MonitorMode {
+function createJournalMode(logger: ILogger): MonitorMode {
   const hostname = Deno.hostname?.() ?? "localhost";
   let messageCounter = 0;
 
@@ -522,7 +527,7 @@ function createJournalMode(): MonitorMode {
   };
 }
 
-function createWindowMode(): MonitorMode {
+function createWindowMode(logger: ILogger): MonitorMode {
   let windowStartLine = 0;
   let isFirstRender = true;
   const WINDOW_HEIGHT = 13; // Number of lines the window takes
@@ -676,20 +681,23 @@ function renderCompactBar(percent: number, width: number): string {
 }
 
 if (import.meta.main) {
+  // Create logger instance for the application
+  const logger = createConsoleLogger();
+
   const options = parseArgs(Deno.args);
 
   if (options.help) {
-    printHelp();
+    printHelp(logger);
     Deno.exit(0);
   }
 
   if (options.list) {
-    printModeList();
+    printModeList(logger);
     Deno.exit(0);
   }
 
   if (options.unknown.length > 0) {
-    ConsoleStyler.logWarning("Ignoring unknown arguments", {
+    logger.logWarning("Ignoring unknown arguments", {
       values: options.unknown,
     });
   }
@@ -697,10 +705,10 @@ if (import.meta.main) {
   const modeKey = options.mode ?? DEFAULT_MODE;
 
   if (!isModeKey(modeKey)) {
-    ConsoleStyler.logError("Unknown mode requested", { mode: modeKey });
-    printModeList();
+    logger.logError("Unknown mode requested", { mode: modeKey });
+    printModeList(logger);
     Deno.exit(1);
   }
 
-  await runMonitor(modeKey);
+  await runMonitor(modeKey, logger);
 }

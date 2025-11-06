@@ -84,6 +84,8 @@ export type { HonoLoggerOptions } from "./adapters/hono.ts";
 export { expressLogger } from "./adapters/express.ts";
 export type { ExpressLoggerOptions } from "./adapters/express.ts";
 
+export { ConsoleStylerAdapter, createConsoleLogger } from "./adapters/logger-adapter.ts";
+
 // Utilities
 export { TerminalDetector } from "./utils/terminal.ts";
 

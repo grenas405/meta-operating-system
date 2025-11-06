@@ -13,11 +13,13 @@ import {
 } from "../core/middleware/index.ts";
 import type { Context } from "../core/utils/context.ts";
 import type { SystemMetrics } from "./types/SystemMetrics.ts";
-import { ConsoleStyler } from "../core/utils/console-styler/mod.ts";
+import type { ILogger } from "../core/interfaces/ILogger.ts";
+import { createConsoleLogger } from "../core/utils/console-styler/mod.ts";
 
 interface HeartbeatServerConfig {
   port?: number;
   hostname?: string;
+  logger?: ILogger;
 }
 
 export class HeartbeatServer {
@@ -27,12 +29,15 @@ export class HeartbeatServer {
   private latestMetrics: SystemMetrics | null = null;
   private metricsHistory: SystemMetrics[] = [];
   private readonly MAX_HISTORY = 60; // Keep last 60 seconds
+  private logger: ILogger;
 
   constructor(config: HeartbeatServerConfig = {}) {
     this.config = {
       port: config.port ?? 3000,
       hostname: config.hostname ?? "127.0.0.1",
+      logger: config.logger,
     };
+    this.logger = config.logger ?? createConsoleLogger();
     this.abortController = new AbortController();
   }
 
@@ -66,48 +71,14 @@ export class HeartbeatServer {
    * Start the HTTP server
    */
   async start(): Promise<void> {
-    ConsoleStyler.logSection("Heartbeat Metrics Server", "brightCyan", "heavy");
+    this.logger.logSection("Heartbeat Metrics Server", "brightCyan", "heavy");
 
-    // Create custom logger using console-styler
-    const customLogger = {
-      logInfo: (message: string, metadata?: Record<string, unknown>) => {
-        ConsoleStyler.logInfo(message, metadata);
-      },
-      logSuccess: (message: string, metadata?: Record<string, unknown>) => {
-        ConsoleStyler.logSuccess(message, metadata);
-      },
-      logWarning: (message: string, metadata?: Record<string, unknown>) => {
-        ConsoleStyler.logWarning(message, metadata);
-      },
-      logError: (message: string, metadata?: Record<string, unknown>) => {
-        ConsoleStyler.logError(message, metadata);
-      },
-      logCritical: (message: string, metadata?: Record<string, unknown>) => {
-        ConsoleStyler.logCritical(message, metadata);
-      },
-      logDebug: (message: string, metadata?: Record<string, unknown>) => {
-        ConsoleStyler.logDebug(message, metadata);
-      },
-      logRequest: (
-        method: string,
-        path: string,
-        status: number,
-        duration: number,
-        size?: number,
-      ) => {
-        ConsoleStyler.logRequest(method, path, status, duration, size);
-      },
-      logSection: (title: string, colorName?: any, style?: any) => {
-        ConsoleStyler.logSection(title, colorName, style);
-      },
-    };
-
-    // Create router
-    const router = createRouter(customLogger);
+    // Create router with injected logger
+    const router = createRouter(this.logger);
 
     // Add middleware
     router.use(errorHandler());
-    router.use(logger(customLogger));
+    router.use(logger(this.logger));
     router.use(timing());
     router.use(requestId());
 
@@ -197,11 +168,11 @@ export class HeartbeatServer {
           hostname: this.config.hostname!,
           signal: this.abortController.signal,
           onListen: ({ port, hostname }) => {
-            ConsoleStyler.logSuccess(
+            this.logger.logSuccess(
               `Server listening on http://${hostname}:${port}`,
               { port, hostname },
             );
-            ConsoleStyler.logInfo("Available endpoints:");
+            this.logger.logInfo("Available endpoints:");
             console.log("  GET  /              - API information");
             console.log("  GET  /health        - Health check");
             console.log("  GET  /metrics       - Latest system metrics");
@@ -217,7 +188,7 @@ export class HeartbeatServer {
             const errorMessage = error instanceof Error
               ? error.message
               : String(error);
-            ConsoleStyler.logError(
+            this.logger.logError(
               `Unhandled error in request handler: ${errorMessage}`,
               { url: request.url, method: request.method },
             );
@@ -234,12 +205,12 @@ export class HeartbeatServer {
       );
 
       await this.server.finished;
-      ConsoleStyler.logSuccess("Server shutdown complete");
+      this.logger.logSuccess("Server shutdown complete");
     } catch (error) {
       const errorMessage = error instanceof Error
         ? error.message
         : String(error);
-      ConsoleStyler.logError(`Failed to start server: ${errorMessage}`, {
+      this.logger.logError(`Failed to start server: ${errorMessage}`, {
         port: this.config.port,
         hostname: this.config.hostname,
       });
