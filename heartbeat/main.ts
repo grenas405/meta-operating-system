@@ -1,4 +1,8 @@
-import { BoxRenderer, ColorSystem, ConsoleStyler } from "../core/utils/console-styler/mod.ts";
+import {
+  BoxRenderer,
+  ColorSystem,
+  ConsoleStyler,
+} from "../core/utils/console-styler/mod.ts";
 import { LifelineAnimator } from "./utils/LifelineAnimator.ts";
 import { GENESIS_QUOTES } from "./constants/genesis-quotes.ts";
 import type { SystemMetrics } from "./types/SystemMetrics.ts";
@@ -20,10 +24,12 @@ interface CliOptions {
 
 const STDOUT_DECODER = new TextDecoder();
 const STDERR_DECODER = new TextDecoder();
-const DEFAULT_MODE: MonitorModeKey = "window";
+const DEFAULT_MODE: MonitorModeKey = "server";
 
 const MODE_FACTORIES = {
   window: createWindowMode,
+  server: createServerMode,
+  journal: createJournalMode,
 } as const;
 
 type MonitorModeKey = keyof typeof MODE_FACTORIES;
@@ -163,7 +169,10 @@ function printHelp(): void {
     "  deno run --allow-run --allow-read --allow-env main.ts window",
   );
   console.log(
-    "  deno run --allow-run --allow-read --allow-env main.ts --mode window",
+    "  deno run --allow-run --allow-read --allow-env main.ts --mode journal",
+  );
+  console.log(
+    "  deno run --allow-run --allow-read --allow-env main.ts journal",
   );
   console.log("");
 }
@@ -258,6 +267,198 @@ async function runMonitor(modeKey: MonitorModeKey): Promise<void> {
   }
 }
 
+function createServerMode(): MonitorMode {
+  let heartbeatServer: any = null;
+
+  return {
+    label: "HTTP Server",
+    description: "Serve metrics via HTTP API on port 3000.",
+    async onStart() {
+      // Import and create HeartbeatServer
+      const { HeartbeatServer } = await import("./server.ts");
+      heartbeatServer = new HeartbeatServer({
+        port: 3000,
+        hostname: "0.0.0.0",
+      });
+
+      // Start server in background (non-blocking)
+      heartbeatServer.start().catch((error: Error) => {
+        ConsoleStyler.logError("Server error", { error: error.message });
+      });
+
+      // Wait a bit for server to initialize
+      await delay(1000);
+    },
+    onMetrics(metrics) {
+      // Update metrics in the server
+      if (heartbeatServer) {
+        heartbeatServer.updateMetrics(metrics);
+      }
+
+      // Log summary to console
+      const timestamp = formatClockTime(metrics.timestamp);
+      const cpuColor = chooseCpuColor(metrics.cpu_usage_percent);
+      const memColor = chooseMemoryColor(metrics.memory_usage_percent);
+
+      console.log(
+        `[${timestamp}] CPU: ${
+          ColorSystem.colorize(
+            metrics.cpu_usage_percent.toFixed(1) + "%",
+            cpuColor,
+          )
+        } | ` +
+          `MEM: ${
+            ColorSystem.colorize(
+              metrics.memory_usage_percent.toFixed(1) + "%",
+              memColor,
+            )
+          }`,
+      );
+    },
+  };
+}
+
+function createJournalMode(): MonitorMode {
+  const hostname = Deno.hostname?.() ?? "localhost";
+  let messageCounter = 0;
+
+  const getSeverityLevel = (cpuUsage: number, memoryUsage: number): string => {
+    if (cpuUsage > 80 || memoryUsage > 85) return "warning";
+    if (cpuUsage > 60 || memoryUsage > 70) return "notice";
+    return "info";
+  };
+
+  const getSeverityColor = (
+    level: string,
+  ): "brightRed" | "orange" | "brightGreen" | "brightCyan" => {
+    switch (level) {
+      case "warning":
+        return "brightRed";
+      case "notice":
+        return "orange";
+      case "info":
+        return "brightGreen";
+      default:
+        return "brightCyan";
+    }
+  };
+
+  const formatJournalTimestamp = (timestamp: number): string => {
+    const date = new Date(timestamp * 1000);
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+    return `${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
+  return {
+    label: "Journal Log",
+    description: "Systemd-style journal log output to stdout.",
+    onStart() {
+      // Print initial journal header
+      const now = new Date();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      const hours = String(now.getHours()).padStart(2, "0");
+      const minutes = String(now.getMinutes()).padStart(2, "0");
+      const seconds = String(now.getSeconds()).padStart(2, "0");
+      const timestamp = `${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+      console.log(
+        `${timestamp} ${hostname} heartbeat[${Deno.pid}]: ${
+          ColorSystem.colorize(
+            "Started heartbeat monitoring service",
+            "brightGreen",
+          )
+        }`,
+      );
+    },
+    onMetrics(metrics) {
+      messageCounter++;
+      const timestamp = formatJournalTimestamp(metrics.timestamp);
+      const level = getSeverityLevel(
+        metrics.cpu_usage_percent,
+        metrics.memory_usage_percent,
+      );
+      const levelColor = getSeverityColor(level);
+      const levelTag = level.toUpperCase().padEnd(7);
+
+      // Main metrics line
+      const cpuStr = `cpu=${metrics.cpu_usage_percent.toFixed(1)}%`;
+      const memStr = `mem=${metrics.memory_usage_percent.toFixed(1)}%`;
+      const memUsedStr = `used=${formatMemory(metrics.memory_used_mb)}`;
+      const memTotalStr = `total=${formatMemory(metrics.memory_total_mb)}`;
+
+      console.log(
+        `${timestamp} ${hostname} heartbeat[${Deno.pid}]: ${
+          ColorSystem.colorize(levelTag, levelColor)
+        } ${cpuStr} ${memStr} ${memUsedStr}/${memTotalStr}`,
+      );
+
+      // Alert messages
+      if (metrics.cpu_spike_detected) {
+        console.log(
+          `${timestamp} ${hostname} heartbeat[${Deno.pid}]: ${
+            ColorSystem.colorize("ALERT  ", "brightRed")
+          } CPU spike detected: ${
+            metrics.cpu_usage_percent.toFixed(1)
+          }% utilization`,
+        );
+      }
+
+      if (metrics.memory_leak_suspected) {
+        console.log(
+          `${timestamp} ${hostname} heartbeat[${Deno.pid}]: ${
+            ColorSystem.colorize("ALERT  ", "brightRed")
+          } Memory leak suspected: ${
+            metrics.memory_usage_percent.toFixed(1)
+          }% usage trending upward`,
+        );
+      }
+
+      // Swap info (only if swap is being used)
+      if (metrics.swap_total_mb > 0 && metrics.swap_used_mb > 0) {
+        const swapPercent = (metrics.swap_used_mb / metrics.swap_total_mb) *
+          100;
+        if (swapPercent > 10) {
+          console.log(
+            `${timestamp} ${hostname} heartbeat[${Deno.pid}]: ${
+              ColorSystem.colorize("NOTICE ", "orange")
+            } swap=${swapPercent.toFixed(1)}% used=${
+              metrics.swap_used_mb.toFixed(0)
+            }MB`,
+          );
+        }
+      }
+    },
+    onShutdown(status) {
+      const now = new Date();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      const hours = String(now.getHours()).padStart(2, "0");
+      const minutes = String(now.getMinutes()).padStart(2, "0");
+      const seconds = String(now.getSeconds()).padStart(2, "0");
+      const timestamp = `${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+      const exitMessage = status.success
+        ? ColorSystem.colorize(
+          "Stopped heartbeat monitoring service",
+          "brightGreen",
+        )
+        : ColorSystem.colorize(
+          `Service failed with exit code ${status.code}`,
+          "brightRed",
+        );
+
+      console.log(
+        `${timestamp} ${hostname} heartbeat[${Deno.pid}]: ${exitMessage}`,
+      );
+    },
+  };
+}
+
 function createWindowMode(): MonitorMode {
   let windowStartLine = 0;
   let isFirstRender = true;
@@ -288,8 +489,12 @@ function createWindowMode(): MonitorMode {
 
       // Save initial position
       const encoder = new TextEncoder();
-      Deno.stdout.writeSync(encoder.encode("\n💓 Heartbeat Monitor - Window Mode\n"));
-      Deno.stdout.writeSync(encoder.encode("Initializing system metrics...\n\n"));
+      Deno.stdout.writeSync(
+        encoder.encode("\n💓 Heartbeat Monitor - Window Mode\n"),
+      );
+      Deno.stdout.writeSync(
+        encoder.encode("Initializing system metrics...\n\n"),
+      );
       windowStartLine = 3;
     },
     onMetrics(metrics) {
@@ -339,7 +544,8 @@ function createWindowMode(): MonitorMode {
 
       // Swap if available
       if (metrics.swap_total_mb > 0) {
-        const swapPercent = (metrics.swap_used_mb / metrics.swap_total_mb) * 100;
+        const swapPercent = (metrics.swap_used_mb / metrics.swap_total_mb) *
+          100;
         content.push(
           `${ColorSystem.colorize("SWP:", "cyan")} ${
             metrics.swap_used_mb.toFixed(0)

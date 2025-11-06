@@ -533,7 +533,9 @@ class Kernel {
     // Display startup banner
     // NOTE: renderBanner is not part of ILogger interface - using ConsoleStyler directly for now
     // This is acceptable as banners are a specialized formatting concern
-    const { ConsoleStyler } = await import("./core/utils/console-styler/mod.ts");
+    const { ConsoleStyler } = await import(
+      "./core/utils/console-styler/mod.ts"
+    );
     ConsoleStyler.renderBanner({
       version: this.systemInfo.version,
       buildDate: new Date().toISOString(),
