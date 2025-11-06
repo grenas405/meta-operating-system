@@ -5,10 +5,10 @@
  * No external dependencies - uses only Deno built-in APIs
  */
 
-import type { ILogger } from "./interfaces/mod.ts";
-import { defaultLogger } from "./adapters/mod.ts";
-import { env, type KernelConfig } from "./config/mod.ts";
-import { MetaRepl } from "./utils/repl.ts";
+import type { ILogger } from "./core/interfaces/mod.ts";
+import { defaultLogger } from "./core/adapters/mod.ts";
+import { env, type KernelConfig } from "./core/config/mod.ts";
+import { MetaRepl } from "./repl.ts";
 
 interface SystemInfo {
   startTime: number;
@@ -533,7 +533,7 @@ class Kernel {
     // Display startup banner
     // NOTE: renderBanner is not part of ILogger interface - using ConsoleStyler directly for now
     // This is acceptable as banners are a specialized formatting concern
-    const { ConsoleStyler } = await import("./utils/console-styler/mod.ts");
+    const { ConsoleStyler } = await import("./core/utils/console-styler/mod.ts");
     ConsoleStyler.renderBanner({
       version: this.systemInfo.version,
       buildDate: new Date().toISOString(),
@@ -559,7 +559,34 @@ class Kernel {
 
     await this.init();
 
-    // Start the HTTP server process using configured path
+    // =========================================================================
+    // PROCESS 1: Heartbeat Monitor
+    // =========================================================================
+    this.log("Starting heartbeat monitor process...");
+    const heartbeatScriptPath = new URL(
+      this.config.heartbeatScriptPath,
+      import.meta.url,
+    ).pathname;
+
+    await this.spawnProcess(
+      "heartbeat",
+      "Heartbeat Monitor",
+      heartbeatScriptPath,
+      [],
+      {
+        env: {
+          DEBUG: String(this.config.debug),
+        },
+        autoRestart: true,
+      },
+    );
+
+    this.logSuccess("Heartbeat monitor started");
+
+    // =========================================================================
+    // PROCESS 2: HTTP Configuration Server
+    // =========================================================================
+    this.log("Starting HTTP configuration server on port 9000...");
     const serverScriptPath = new URL(
       this.config.serverScriptPath,
       import.meta.url,
@@ -594,12 +621,23 @@ class Kernel {
     // Wait for HTTP server to be ready
     this.log("Waiting for HTTP server to be ready...");
     await serverReadyPromise;
-    this.logSuccess("HTTP server is ready");
+    this.logSuccess("HTTP server is ready on port 9000");
 
     this.logSuccess("Kernel boot complete");
 
-    // Start the REPL shell
-    await this.startRepl();
+    // =========================================================================
+    // PROCESS 3: REPL Shell
+    // =========================================================================
+    // Only start REPL if stdin is a TTY (interactive terminal)
+    if (Deno.stdin.isTerminal()) {
+      this.log("Starting REPL shell for process monitoring...");
+      await this.startRepl();
+    } else {
+      this.log("Running in non-interactive mode (no TTY detected)");
+      this.log(
+        `To enter REPL, send SIGUSR1: kill -SIGUSR1 ${this.systemInfo.pid}`,
+      );
+    }
 
     // Keep kernel running after REPL exits
     await new Promise(() => {}); // Run forever until signal
@@ -623,6 +661,15 @@ class Kernel {
    * Re-enter the REPL shell
    */
   private reenterRepl(): void {
+    // Check if stdin is a TTY before attempting to start REPL
+    if (!Deno.stdin.isTerminal()) {
+      this.logError(
+        "Cannot start REPL: stdin is not a TTY (not connected to a terminal)",
+      );
+      this.log("REPL requires an interactive terminal session");
+      return;
+    }
+
     this.log("Re-entering REPL shell...");
     // Start REPL in a new async context
     (async () => {

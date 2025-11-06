@@ -15,7 +15,7 @@
  */
 export const DEFAULT_CONFIG = {
   /** Default HTTP server port */
-  PORT: 8000,
+  PORT: 9000,
 
   /** Default HTTP server hostname */
   HOSTNAME: "localhost",
@@ -27,7 +27,10 @@ export const DEFAULT_CONFIG = {
   ENVIRONMENT: "development",
 
   /** Default server script path (relative to kernel) */
-  SERVER_SCRIPT_PATH: "./server.ts",
+  SERVER_SCRIPT_PATH: "./core/server.ts",
+
+  /** Default heartbeat script path (relative to kernel) */
+  HEARTBEAT_SCRIPT_PATH: "./heartbeat/main.ts",
 
   /** Default log history size */
   MAX_LOG_HISTORY: 100,

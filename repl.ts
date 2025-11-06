@@ -14,9 +14,9 @@
  * - Self-documenting: The system explains itself
  */
 
-import { ConsoleStyler } from "./console-styler/mod.ts";
-import type { Kernel } from "../kernel.ts";
-import { manCommand } from "./man.ts";
+import { ConsoleStyler } from "./core/utils/console-styler/mod.ts";
+import type { Kernel } from "./kernel.ts";
+import { manCommand } from "./core/utils/man.ts";
 
 // =============================================================================
 // CYBERPUNK COLOR PALETTE

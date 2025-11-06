@@ -213,10 +213,14 @@ async function runMonitor(modeKey: MonitorModeKey): Promise<void> {
 
   await mode.onStart?.();
 
+  // Get the directory where this script is located (heartbeat directory)
+  const scriptDir = new URL(".", import.meta.url).pathname;
+
   const command = new Deno.Command("cargo", {
     args: ["run", "--release", "--quiet"],
     stdout: "piped",
     stderr: "piped",
+    cwd: scriptDir,
   });
 
   const process = command.spawn();

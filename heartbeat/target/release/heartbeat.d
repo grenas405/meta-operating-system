@@ -1,1 +1,1 @@
-/home/grenas405/.local/src/heartbeat/target/release/heartbeat: /home/grenas405/.local/src/heartbeat/src/main.rs
+/home/grenas405/.local/src/meta-operating-system/heartbeat/target/release/heartbeat: /home/grenas405/.local/src/meta-operating-system/heartbeat/src/main.rs

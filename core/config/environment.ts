@@ -25,6 +25,7 @@ export interface KernelConfig {
   debug: boolean;
   environment: string;
   serverScriptPath: string;
+  heartbeatScriptPath: string;
 }
 
 /**
@@ -123,6 +124,8 @@ export class EnvironmentConfig {
       environment: overrides?.environment ?? this.environment,
       serverScriptPath: overrides?.serverScriptPath ??
         DEFAULT_CONFIG.SERVER_SCRIPT_PATH,
+      heartbeatScriptPath: overrides?.heartbeatScriptPath ??
+        DEFAULT_CONFIG.HEARTBEAT_SCRIPT_PATH,
     };
   }
 }
