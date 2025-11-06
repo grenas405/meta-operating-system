@@ -1,0 +1,23 @@
+{
+  "author": "Pedro M. Dominguez",
+  "name": "@grenas405/console-styler",
+  "version": "1.0.0",
+  "exports": "./mod.ts",
+  "tasks": {
+    "test": "deno test --allow-read --allow-write --allow-env",
+    "example": "deno run --allow-read --allow-write --allow-env examples/basic.ts"
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "semiColons": true,
+    "proseWrap": "preserve",
+    "singleQuote": false
+  }
+}
