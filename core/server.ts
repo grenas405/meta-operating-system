@@ -102,9 +102,9 @@ class HTTPServer {
       buildDate: new Date().toISOString(),
       environment: this.config.environment,
       port: this.config.port,
-      author: "Meta-OS Team",
-      repository: "github.com/meta-os/meta-operating-system",
-      description: "Meta Operating System - HTTP Server",
+      author: "Pedro M.Dominguez",
+      repository: "https://github.com/grenas405/meta-operating-system",
+      description: "HTTP Server for Deno Genesis Meta OS",
       features: [
         "HTTP Routes",
         "Middleware Pipeline",
@@ -128,7 +128,11 @@ class HTTPServer {
     // Add middleware
     router.use(errorHandler());
     router.use(
-      createPerformanceMiddleware(this.performanceMonitor, this.logger, this.config.debug),
+      createPerformanceMiddleware(
+        this.performanceMonitor,
+        this.logger,
+        this.config.debug,
+      ),
     );
     router.use(logger(this.logger));
     router.use(timing());
