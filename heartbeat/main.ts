@@ -288,6 +288,17 @@ function createServerMode(): MonitorMode {
 
       // Wait a bit for server to initialize
       await delay(1000);
+
+      // Log server startup information
+      console.log("SERVER_READY");
+      ConsoleStyler.logSuccess("Heartbeat server started", {
+        port: 3000,
+        hostname: "0.0.0.0",
+        endpoints: [
+          "GET /health",
+          "GET /metrics",
+        ],
+      });
     },
     onMetrics(metrics) {
       // Update metrics in the server
@@ -295,25 +306,18 @@ function createServerMode(): MonitorMode {
         heartbeatServer.updateMetrics(metrics);
       }
 
-      // Log summary to console
-      const timestamp = formatClockTime(metrics.timestamp);
-      const cpuColor = chooseCpuColor(metrics.cpu_usage_percent);
-      const memColor = chooseMemoryColor(metrics.memory_usage_percent);
+      // Silent mode - only log critical alerts
+      if (metrics.cpu_spike_detected) {
+        ConsoleStyler.logWarning("CPU spike detected", {
+          usage: `${metrics.cpu_usage_percent.toFixed(1)}%`,
+        });
+      }
 
-      console.log(
-        `[${timestamp}] CPU: ${
-          ColorSystem.colorize(
-            metrics.cpu_usage_percent.toFixed(1) + "%",
-            cpuColor,
-          )
-        } | ` +
-          `MEM: ${
-            ColorSystem.colorize(
-              metrics.memory_usage_percent.toFixed(1) + "%",
-              memColor,
-            )
-          }`,
-      );
+      if (metrics.memory_leak_suspected) {
+        ConsoleStyler.logWarning("Memory leak suspected", {
+          usage: `${metrics.memory_usage_percent.toFixed(1)}%`,
+        });
+      }
     },
   };
 }

@@ -237,8 +237,30 @@ class Kernel {
         if (text.includes("SERVER_READY") && process.readyResolver) {
           process.readyResolver();
         }
-        // Always display process output
-        this.logger.logInfo(`[${process.name}] ${text.trim()}`);
+
+        // Filter heartbeat monitor output - only show important messages
+        if (process.id === "heartbeat") {
+          const trimmed = text.trim();
+          // Only show: server startup info, endpoints, warnings, errors, and critical alerts
+          if (
+            trimmed.includes("SERVER_READY") ||
+            trimmed.includes("Heartbeat server started") ||
+            trimmed.includes("endpoints") ||
+            trimmed.includes("port") ||
+            trimmed.includes("hostname") ||
+            trimmed.includes("WARNING") ||
+            trimmed.includes("ERROR") ||
+            trimmed.includes("CRITICAL") ||
+            trimmed.includes("spike detected") ||
+            trimmed.includes("leak suspected")
+          ) {
+            this.logger.logInfo(`[${process.name}] ${trimmed}`);
+          }
+          // Suppress regular metric updates
+        } else {
+          // Display all output for non-heartbeat processes
+          this.logger.logInfo(`[${process.name}] ${text.trim()}`);
+        }
       }
     })();
 
