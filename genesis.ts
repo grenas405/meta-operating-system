@@ -4,7 +4,7 @@
  * Quick entry point to the Genesis interactive shell
  */
 
-import { GenesisRepl } from "./utils/genesis-repl.ts";
+import { GenesisRepl } from "./genesis-repl.ts";
 
 const repl = new GenesisRepl();
 await repl.start();

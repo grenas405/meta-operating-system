@@ -29,7 +29,7 @@ import {
   BannerRenderer,
   BoxRenderer,
   Logger,
-} from "../../console-styler/mod.ts";
+} from "../../core/utils/console-styler/mod.ts";
 
 // Types for better developer experience
 interface CLIContext {
