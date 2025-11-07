@@ -163,6 +163,24 @@ export class GenesisRepl {
 
     // System Commands
     this.registerCommand({
+      name: "cd",
+      description: "Change the current working directory",
+      category: "system",
+      handler: (args) => {
+        this.changeDirectory(args);
+      },
+    });
+
+    this.registerCommand({
+      name: "man",
+      description: "Display Genesis Meta OS manual and documentation",
+      category: "system",
+      handler: (args) => {
+        this.showManual(args);
+      },
+    });
+
+    this.registerCommand({
       name: "help",
       description: "Display available commands and usage information",
       category: "system",
@@ -330,6 +348,65 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
     console.log(
       `${colors.dim}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}\n`,
     );
+
+    // Show native Linux commands section
+    console.log(
+      `${colors.neonPink}▸ ${colors.bright}Native Linux Commands${colors.reset}\n`,
+    );
+    console.log(
+      `  ${colors.dim}Genesis REPL supports all native Linux commands:${colors.reset}\n`,
+    );
+
+    const linuxCommands = [
+      ["ls", "List directory contents"],
+      ["cd", "Change directory (Genesis builtin)"],
+      ["pwd", "Print working directory"],
+      ["cat", "Concatenate and print files"],
+      ["grep", "Search text patterns"],
+      ["find", "Search for files"],
+      ["git", "Version control operations"],
+      ["npm", "Node package manager"],
+      ["curl", "Transfer data with URLs"],
+      ["wget", "Download files"],
+      ["mkdir", "Create directories"],
+      ["rm", "Remove files/directories"],
+      ["cp", "Copy files/directories"],
+      ["mv", "Move/rename files"],
+      ["echo", "Display messages"],
+      ["touch", "Create empty files"],
+      ["chmod", "Change file permissions"],
+      ["ps", "Process status"],
+      ["kill", "Terminate processes"],
+      ["top", "Display system processes"],
+    ];
+
+    // Display in two columns
+    for (let i = 0; i < linuxCommands.length; i += 2) {
+      const [cmd1, desc1] = linuxCommands[i];
+      const entry1 = `  ${colors.neonGreen}${
+        cmd1.padEnd(12)
+      }${colors.reset} ${colors.dim}│${colors.reset} ${desc1}`;
+
+      if (i + 1 < linuxCommands.length) {
+        const [cmd2, desc2] = linuxCommands[i + 1];
+        console.log(entry1.padEnd(70) + `  ${colors.neonGreen}${cmd2.padEnd(12)}${colors.reset} ${colors.dim}│${colors.reset} ${desc2}`);
+      } else {
+        console.log(entry1);
+      }
+    }
+
+    console.log();
+    console.log(
+      `  ${colors.electricBlue}Type any Linux command to execute it directly${colors.reset}`,
+    );
+    console.log(
+      `  ${colors.electricBlue}Type ${colors.bright}'man'${colors.reset}${colors.electricBlue} for Genesis documentation${colors.reset}`,
+    );
+    console.log();
+
+    console.log(
+      `${colors.dim}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}\n`,
+    );
   }
 
   /**
@@ -387,6 +464,293 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
     });
 
     console.log();
+  }
+
+  /**
+   * Change directory with support for .. and absolute/relative paths
+   */
+  private changeDirectory(args: string[]): void {
+    try {
+      if (args.length === 0) {
+        // No argument - go to home directory
+        const home = Deno.env.get("HOME") || Deno.env.get("USERPROFILE") || "/";
+        Deno.chdir(home);
+        console.log(`${colors.dim}Changed to: ${Deno.cwd()}${colors.reset}`);
+      } else {
+        const target = args[0];
+        Deno.chdir(target);
+        console.log(`${colors.dim}Changed to: ${Deno.cwd()}${colors.reset}`);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
+      this.logger.logError(`cd: ${errorMessage}`, { path: args[0] });
+    }
+  }
+
+  /**
+   * Display Genesis Meta OS manual and documentation
+   */
+  private showManual(args: string[]): void {
+    if (args.length === 0) {
+      // Show general manual
+      this.showGeneralManual();
+    } else {
+      // Show specific command manual
+      this.showCommandManual(args[0]);
+    }
+  }
+
+  /**
+   * Display general Genesis manual
+   */
+  private showGeneralManual(): void {
+    const manual = `
+${colors.neonCyan}${colors.bright}╔═══════════════════════════════════════════════════════════════════════╗
+║                    GENESIS META OS MANUAL                             ║
+╚═══════════════════════════════════════════════════════════════════════╝${colors.reset}
+
+${colors.neonPink}${colors.bright}NAME${colors.reset}
+    ${colors.bright}genesis${colors.reset} - Deno Genesis Meta Operating System REPL
+
+${colors.neonPink}${colors.bright}SYNOPSIS${colors.reset}
+    ${colors.neonGreen}genesis${colors.reset} [command] [options]
+
+${colors.neonPink}${colors.bright}DESCRIPTION${colors.reset}
+    Genesis is a revolutionary command-line interface that combines Unix
+    philosophy with modern runtime capabilities. It provides a complete
+    development environment for building and deploying web applications
+    with Deno.
+
+${colors.neonPink}${colors.bright}CORE FEATURES${colors.reset}
+    ${colors.neonGreen}▸${colors.reset} Hub-and-spoke architecture for multi-site management
+    ${colors.neonGreen}▸${colors.reset} AI-powered industry-specific template generation
+    ${colors.neonGreen}▸${colors.reset} Multi-tenant MariaDB database architecture
+    ${colors.neonGreen}▸${colors.reset} Hot-reload development server
+    ${colors.neonGreen}▸${colors.reset} Automated deployment configuration
+    ${colors.neonGreen}▸${colors.reset} Native Linux command passthrough
+
+${colors.neonPink}${colors.bright}COMMAND CATEGORIES${colors.reset}
+    ${colors.bright}Site Management${colors.reset}     - init, new
+    ${colors.bright}Database${colors.reset}            - db
+    ${colors.bright}Development${colors.reset}         - dev, serve, start
+    ${colors.bright}Deployment${colors.reset}          - deploy
+    ${colors.bright}System${colors.reset}              - help, status, version, history, cd, man
+
+${colors.neonPink}${colors.bright}NATIVE LINUX COMMANDS${colors.reset}
+    Genesis REPL supports all native Linux commands:
+    ${colors.dim}ls, pwd, cat, grep, find, git, npm, curl, wget, etc.${colors.reset}
+
+    ${colors.bright}Note:${colors.reset} Use ${colors.neonGreen}man [command]${colors.reset} to view Genesis documentation
+          Use ${colors.neonGreen}\\man [command]${colors.reset} to view native Linux man pages (if needed)
+
+${colors.neonPink}${colors.bright}EXAMPLES${colors.reset}
+    ${colors.dim}# Initialize a new Genesis site${colors.reset}
+    ${colors.neonGreen}genesis${colors.reset} init my-site
+
+    ${colors.dim}# Create AI-powered frontend${colors.reset}
+    ${colors.neonGreen}genesis${colors.reset} new --industry healthcare
+
+    ${colors.dim}# Start development server${colors.reset}
+    ${colors.neonGreen}genesis${colors.reset} dev
+
+    ${colors.dim}# Use native commands${colors.reset}
+    ${colors.neonGreen}genesis${colors.reset} git status
+    ${colors.neonGreen}genesis${colors.reset} ls -la
+
+${colors.neonPink}${colors.bright}SEE ALSO${colors.reset}
+    man init, man new, man db, man dev, man deploy
+
+${colors.dim}Genesis Meta OS v1.0.0                                    2025-01-03${colors.reset}
+`;
+    console.log(manual);
+  }
+
+  /**
+   * Display manual for specific command
+   */
+  private showCommandManual(commandName: string): void {
+    const command = this.commands.get(commandName);
+
+    if (!command) {
+      console.log(
+        `\n${colors.red}No manual entry for '${commandName}'${colors.reset}`,
+      );
+      console.log(
+        `${colors.dim}Type 'help' to see available Genesis commands${colors.reset}\n`,
+      );
+      return;
+    }
+
+    const manuals: Record<string, string> = {
+      init: `
+${colors.neonCyan}${colors.bright}INIT(1)                    Genesis Commands                    INIT(1)${colors.reset}
+
+${colors.neonPink}${colors.bright}NAME${colors.reset}
+    init - Initialize a new Genesis site with hub-and-spoke architecture
+
+${colors.neonPink}${colors.bright}SYNOPSIS${colors.reset}
+    ${colors.neonGreen}init${colors.reset} [site-name] [options]
+
+${colors.neonPink}${colors.bright}DESCRIPTION${colors.reset}
+    Initializes a new Genesis site with the hub-and-spoke architecture,
+    creating the necessary directory structure, configuration files, and
+    boilerplate code for a multi-tenant web application.
+
+${colors.neonPink}${colors.bright}OPTIONS${colors.reset}
+    ${colors.bright}--verbose${colors.reset}    Enable detailed logging
+    ${colors.bright}--help${colors.reset}       Display help information
+
+${colors.neonPink}${colors.bright}EXAMPLES${colors.reset}
+    init my-awesome-site
+    init healthcare-portal --verbose
+`,
+      new: `
+${colors.neonCyan}${colors.bright}NEW(1)                     Genesis Commands                     NEW(1)${colors.reset}
+
+${colors.neonPink}${colors.bright}NAME${colors.reset}
+    new - Generate industry-specific frontend with AI-powered templates
+
+${colors.neonPink}${colors.bright}SYNOPSIS${colors.reset}
+    ${colors.neonGreen}new${colors.reset} [options]
+
+${colors.neonPink}${colors.bright}DESCRIPTION${colors.reset}
+    Generates a customized frontend application using AI-powered templates
+    tailored to specific industries such as healthcare, finance, e-commerce,
+    and more.
+
+${colors.neonPink}${colors.bright}OPTIONS${colors.reset}
+    ${colors.bright}--industry${colors.reset}   Specify the industry vertical
+    ${colors.bright}--verbose${colors.reset}    Enable detailed logging
+    ${colors.bright}--help${colors.reset}       Display help information
+
+${colors.neonPink}${colors.bright}EXAMPLES${colors.reset}
+    new --industry healthcare
+    new --industry finance --verbose
+`,
+      db: `
+${colors.neonCyan}${colors.bright}DB(1)                      Genesis Commands                      DB(1)${colors.reset}
+
+${colors.neonPink}${colors.bright}NAME${colors.reset}
+    db - Setup MariaDB with multi-tenant architecture
+
+${colors.neonPink}${colors.bright}SYNOPSIS${colors.reset}
+    ${colors.neonGreen}db${colors.reset} [subcommand] [options]
+
+${colors.neonPink}${colors.bright}DESCRIPTION${colors.reset}
+    Manages MariaDB database operations including setup, migrations,
+    and multi-tenant configuration for Genesis applications.
+
+${colors.neonPink}${colors.bright}SUBCOMMANDS${colors.reset}
+    ${colors.bright}setup${colors.reset}        Initialize database schema
+    ${colors.bright}migrate${colors.reset}      Run database migrations
+    ${colors.bright}seed${colors.reset}         Populate with sample data
+
+${colors.neonPink}${colors.bright}EXAMPLES${colors.reset}
+    db setup
+    db migrate
+    db seed --env development
+`,
+      dev: `
+${colors.neonCyan}${colors.bright}DEV(1)                     Genesis Commands                     DEV(1)${colors.reset}
+
+${colors.neonPink}${colors.bright}NAME${colors.reset}
+    dev - Start development server with hot reload
+
+${colors.neonPink}${colors.bright}SYNOPSIS${colors.reset}
+    ${colors.neonGreen}dev${colors.reset} [options]
+
+${colors.neonPink}${colors.bright}ALIASES${colors.reset}
+    serve, start
+
+${colors.neonPink}${colors.bright}DESCRIPTION${colors.reset}
+    Starts a local development server with hot module reloading,
+    enabling rapid iteration and testing of Genesis applications.
+
+${colors.neonPink}${colors.bright}OPTIONS${colors.reset}
+    ${colors.bright}--port${colors.reset}       Specify port number (default: 8000)
+    ${colors.bright}--verbose${colors.reset}    Enable detailed logging
+    ${colors.bright}--help${colors.reset}       Display help information
+
+${colors.neonPink}${colors.bright}EXAMPLES${colors.reset}
+    dev
+    dev --port 3000
+    serve --verbose
+`,
+      deploy: `
+${colors.neonCyan}${colors.bright}DEPLOY(1)                  Genesis Commands                  DEPLOY(1)${colors.reset}
+
+${colors.neonPink}${colors.bright}NAME${colors.reset}
+    deploy - Generate nginx and systemd configuration files
+
+${colors.neonPink}${colors.bright}SYNOPSIS${colors.reset}
+    ${colors.neonGreen}deploy${colors.reset} [options]
+
+${colors.neonPink}${colors.bright}DESCRIPTION${colors.reset}
+    Generates production-ready nginx reverse proxy configuration and
+    systemd service files for deploying Genesis applications.
+
+${colors.neonPink}${colors.bright}OPTIONS${colors.reset}
+    ${colors.bright}--domain${colors.reset}     Specify the domain name
+    ${colors.bright}--verbose${colors.reset}    Enable detailed logging
+    ${colors.bright}--help${colors.reset}       Display help information
+
+${colors.neonPink}${colors.bright}EXAMPLES${colors.reset}
+    deploy --domain example.com
+    deploy --domain api.example.com --verbose
+`,
+      cd: `
+${colors.neonCyan}${colors.bright}CD(1)                      Genesis Commands                      CD(1)${colors.reset}
+
+${colors.neonPink}${colors.bright}NAME${colors.reset}
+    cd - Change the current working directory
+
+${colors.neonPink}${colors.bright}SYNOPSIS${colors.reset}
+    ${colors.neonGreen}cd${colors.reset} [directory]
+
+${colors.neonPink}${colors.bright}DESCRIPTION${colors.reset}
+    Changes the current working directory to the specified path.
+    Supports relative paths (.., ./subdir) and absolute paths.
+
+${colors.neonPink}${colors.bright}EXAMPLES${colors.reset}
+    cd ..                 # Go up one directory
+    cd ../..              # Go up two directories
+    cd /home/user/project # Absolute path
+    cd my-site            # Relative path
+    cd                    # Go to home directory
+`,
+      help: `
+${colors.neonCyan}${colors.bright}HELP(1)                    Genesis Commands                    HELP(1)${colors.reset}
+
+${colors.neonPink}${colors.bright}NAME${colors.reset}
+    help - Display available commands and usage information
+
+${colors.neonPink}${colors.bright}SYNOPSIS${colors.reset}
+    ${colors.neonGreen}help${colors.reset}
+
+${colors.neonPink}${colors.bright}ALIASES${colors.reset}
+    h, ?
+
+${colors.neonPink}${colors.bright}DESCRIPTION${colors.reset}
+    Displays a categorized list of all available Genesis commands
+    with brief descriptions.
+`,
+    };
+
+    const manual = manuals[command.name] || `
+${colors.neonCyan}${colors.bright}${command.name.toUpperCase()}(1)${colors.reset}
+
+${colors.neonPink}${colors.bright}NAME${colors.reset}
+    ${command.name} - ${command.description}
+
+${colors.neonPink}${colors.bright}DESCRIPTION${colors.reset}
+    ${command.description}
+
+${colors.dim}For more information, type 'help' to see all available commands.${colors.reset}
+`;
+
+    console.log(manual);
   }
 
   /**
