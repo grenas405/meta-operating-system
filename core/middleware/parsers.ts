@@ -414,7 +414,7 @@ export function bodyParser(options: {
   });
   const textParser = text({ limit: options.textLimit });
 
-  return async (ctx: Context, next: () => Promise<Response>) => {
+  const middleware = async (ctx: Context, next: () => Promise<Response>) => {
     const contentType = ctx.request.headers.get("content-type");
 
     if (!contentType) {
@@ -434,4 +434,7 @@ export function bodyParser(options: {
 
     return await next();
   };
+
+  Object.defineProperty(middleware, "name", { value: "bodyParser" });
+  return middleware;
 }

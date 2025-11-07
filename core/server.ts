@@ -12,7 +12,7 @@ import {
 import {
   bodyParser,
   errorHandler,
-  logger,
+  logging,
   requestId,
   staticHandler,
   timing,
@@ -132,7 +132,12 @@ class HTTPServer {
     const router = createRouter(this.logger);
 
     // Add middleware
+    this.log("Registering middleware stack...");
+
+    this.log("Registering errorHandler middleware");
     router.use(errorHandler());
+
+    this.log("Registering performanceMonitor middleware");
     router.use(
       createPerformanceMiddleware(
         this.performanceMonitor,
@@ -140,15 +145,32 @@ class HTTPServer {
         this.config.debug,
       ),
     );
-    router.use(logger(this.logger));
+
+    this.log("Registering logging middleware");
+    router.use(logging({
+      environment: this.config.environment,
+      logLevel: this.config.debug ? "debug" : "info",
+      logRequests: true,
+      logResponses: this.config.debug,
+    }));
+
+    this.log("Registering timing middleware");
     router.use(timing());
+
+    this.log("Registering requestId middleware");
     router.use(requestId());
+
+    this.log("Registering bodyParser middleware");
     router.use(bodyParser());
+
+    this.log("Registering staticHandler middleware");
     router.use(
       staticHandler({
         root: "./public",
       }),
     );
+
+    this.logSuccess("Middleware stack registration complete");
 
     // Register core routes
     registerCoreRoutes(router, {

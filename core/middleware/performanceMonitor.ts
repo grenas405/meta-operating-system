@@ -1278,7 +1278,7 @@ export function createPerformanceMiddleware(
 ) {
   // Return the actual middleware function
   // Compatible with custom Deno HTTP framework
-  return async (ctx: any, next: () => Response | Promise<Response>): Promise<Response> => {
+  const middleware = async (ctx: any, next: () => Response | Promise<Response>): Promise<Response> => {
     // =========================================================================
     // PHASE 1: PRE-REQUEST (Before handler executes)
     // =========================================================================
@@ -1408,6 +1408,9 @@ export function createPerformanceMiddleware(
       throw error;
     }
   };
+
+  Object.defineProperty(middleware, "name", { value: "performanceMonitor" });
+  return middleware;
 }
 
 // ================================================================================

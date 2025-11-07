@@ -41,6 +41,14 @@ export class Router {
    */
   use(middleware: Middleware): this {
     this.middleware.push(middleware);
+
+    // Log middleware registration with middleware name if available
+    const middlewareName = middleware.name || "anonymous";
+    this.logger.logDebug(`Middleware registered: ${middlewareName}`, {
+      middlewareCount: this.middleware.length,
+      middlewareName,
+    });
+
     return this;
   }
 
@@ -204,6 +212,22 @@ export class Router {
       ...this.middleware,
       ...(match.route.middleware ?? []),
     ];
+
+    // Log middleware composition
+    if (allMiddleware.length > 0) {
+      const middlewareNames = allMiddleware.map((mw) => mw.name || "anonymous");
+      this.logger.logDebug(
+        `Composing middleware stack for ${request.method} ${url.pathname}`,
+        {
+          method: request.method,
+          pathname: url.pathname,
+          globalMiddleware: this.middleware.length,
+          routeMiddleware: match.route.middleware?.length ?? 0,
+          totalMiddleware: allMiddleware.length,
+          middlewareStack: middlewareNames,
+        },
+      );
+    }
 
     const handler = allMiddleware.length > 0
       ? compose(allMiddleware, match.route.handler)

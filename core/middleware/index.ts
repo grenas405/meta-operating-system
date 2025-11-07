@@ -65,28 +65,21 @@ export function compose(
 }
 
 /**
- * Logger middleware - logs request method and path
+ * Logger middleware - comprehensive request/response logging
+ *
+ * DEPRECATED: This function is maintained for backward compatibility.
+ * New code should use logging() which provides comprehensive logging features.
+ *
+ * @deprecated Use logging() instead for full-featured logging with security, debug modes, etc.
  */
 export function logger(logger: ILogger): Middleware {
-  return async (ctx, next) => {
-    const start = Date.now();
-    const response = await next();
-    const duration = Date.now() - start;
-
-    // Get response body size if available
-    const contentLength = response.headers.get("content-length");
-    const size = contentLength ? parseInt(contentLength, 10) : undefined;
-
-    logger.logRequest(
-      ctx.request.method,
-      ctx.url.pathname,
-      response.status,
-      duration,
-      size,
-    );
-
-    return response;
-  };
+  // Delegate to the comprehensive logging middleware
+  return logging({
+    environment: Deno.env.get("DENO_ENV") || "development",
+    logLevel: "info",
+    logRequests: true,
+    logResponses: false,
+  });
 }
 
 /**
@@ -111,6 +104,7 @@ export function cors(options?: CorsOptions): Middleware {
   const environment = Deno.env.get("DENO_ENV") || Deno.env.get("ENV") || "development";
 
   // Auto-detect safe defaults based on environment
+  let middleware: Middleware;
   if (!options) {
     if (environment === "production") {
       const allowedOrigins = Deno.env.get("ALLOWED_ORIGINS")?.split(",") ?? [];
@@ -119,12 +113,16 @@ export function cors(options?: CorsOptions): Middleware {
           "CORS: Production environment requires ALLOWED_ORIGINS environment variable"
         );
       }
-      return createCorsMiddleware(CorsPresets.PRODUCTION(allowedOrigins));
+      middleware = createCorsMiddleware(CorsPresets.PRODUCTION(allowedOrigins));
+    } else {
+      middleware = createCorsMiddleware(CorsPresets.DEVELOPMENT);
     }
-    return createCorsMiddleware(CorsPresets.DEVELOPMENT);
+  } else {
+    middleware = createCorsMiddleware(options);
   }
 
-  return createCorsMiddleware(options);
+  Object.defineProperty(middleware, "name", { value: "cors" });
+  return middleware;
 }
 
 /**
@@ -145,14 +143,16 @@ export function errorHandler(config?: ErrorConfig): Middleware {
 
   const finalConfig = config || defaultConfig;
 
-  return createErrorMiddleware(finalConfig);
+  const middleware = createErrorMiddleware(finalConfig);
+  Object.defineProperty(middleware, "name", { value: "errorHandler" });
+  return middleware;
 }
 
 /**
  * Timing middleware - adds X-Response-Time header
  */
 export function timing(): Middleware {
-  return async (ctx, next) => {
+  const middleware = async (ctx: Context, next: () => Promise<Response>) => {
     const start = Date.now();
     const response = await next();
     const duration = Date.now() - start;
@@ -166,13 +166,16 @@ export function timing(): Middleware {
       headers,
     });
   };
+
+  Object.defineProperty(middleware, "name", { value: "timing" });
+  return middleware;
 }
 
 /**
  * Request ID middleware - adds unique request ID
  */
 export function requestId(): Middleware {
-  return async (ctx, next) => {
+  const middleware = async (ctx: Context, next: () => Promise<Response>) => {
     const id = crypto.randomUUID();
     ctx.state.requestId = id;
 
@@ -187,6 +190,9 @@ export function requestId(): Middleware {
       headers,
     });
   };
+
+  Object.defineProperty(middleware, "name", { value: "requestId" });
+  return middleware;
 }
 
 /**
@@ -213,7 +219,11 @@ export function healthCheck(
     finalConfig,
   );
 
-  return (ctx, next) => healthMiddleware(ctx, next);
+  const middleware = (ctx: Context, next: () => Promise<Response>) =>
+    healthMiddleware(ctx, next);
+
+  Object.defineProperty(middleware, "name", { value: "healthCheck" });
+  return middleware;
 }
 
 /**
@@ -236,7 +246,11 @@ export function logging(config?: LoggingConfig): Middleware {
 
   const loggingMiddleware = createLoggingMiddleware(finalConfig);
 
-  return (ctx, next) => loggingMiddleware(ctx, next);
+  const middleware = (ctx: Context, next: () => Promise<Response>) =>
+    loggingMiddleware(ctx, next);
+
+  Object.defineProperty(middleware, "name", { value: "logging" });
+  return middleware;
 }
 
 /**
@@ -256,7 +270,11 @@ export function security(config?: SecurityConfig): Middleware {
 
   const securityMiddleware = createSecurityMiddleware(finalConfig);
 
-  return (ctx, next) => securityMiddleware(ctx, next);
+  const middleware = (ctx: Context, next: () => Promise<Response>) =>
+    securityMiddleware(ctx, next);
+
+  Object.defineProperty(middleware, "name", { value: "security" });
+  return middleware;
 }
 
 /**
@@ -279,7 +297,9 @@ export function staticHandler(
     ...config,
   };
 
-  return StaticFileHandler.createMiddleware(finalConfig);
+  const middleware = StaticFileHandler.createMiddleware(finalConfig);
+  Object.defineProperty(middleware, "name", { value: "staticHandler" });
+  return middleware;
 }
 
 // ================================================================================
