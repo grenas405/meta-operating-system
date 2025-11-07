@@ -14,6 +14,7 @@ import {
   errorHandler,
   logger,
   requestId,
+  staticHandler,
   timing,
 } from "./middleware/index.ts";
 import type { ILogger } from "./interfaces/mod.ts";
@@ -143,6 +144,11 @@ class HTTPServer {
     router.use(timing());
     router.use(requestId());
     router.use(bodyParser());
+    router.use(
+      staticHandler({
+        root: "./public",
+      }),
+    );
 
     // Register core routes
     registerCoreRoutes(router, {

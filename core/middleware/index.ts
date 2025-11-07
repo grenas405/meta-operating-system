@@ -21,6 +21,11 @@ import {
   type SecurityConfig,
   SecurityPresets,
 } from "./securityMiddleware.ts";
+import {
+  StaticFileHandler,
+  StaticFilePresets,
+  type StaticFileConfig,
+} from "./staticHandlerMiddleware.ts";
 import { PerformanceMonitor } from "./performanceMonitor.ts";
 
 /**
@@ -251,6 +256,29 @@ export function security(config?: SecurityConfig): Middleware {
   const securityMiddleware = createSecurityMiddleware(finalConfig);
 
   return (ctx, next) => securityMiddleware(ctx, next);
+}
+
+/**
+ * Static file middleware - serves assets with sane defaults
+ *
+ * @param config - Optional overrides merged with environment defaults
+ */
+export function staticHandler(
+  config?: Partial<StaticFileConfig>,
+): Middleware {
+  const environment = Deno.env.get("DENO_ENV") || Deno.env.get("ENV") ||
+    "development";
+
+  const defaultConfig = environment === "production"
+    ? StaticFilePresets.PRODUCTION
+    : StaticFilePresets.DEVELOPMENT;
+
+  const finalConfig: StaticFileConfig = {
+    ...defaultConfig,
+    ...config,
+  };
+
+  return StaticFileHandler.createMiddleware(finalConfig);
 }
 
 // ================================================================================

@@ -114,13 +114,12 @@ async function getLatestGitTag(): Promise<string> {
   const result = await executeGitCommand(["describe", "--tags", "--abbrev=0"]);
 
   if (result.success && result.output) {
-    // Remove 'v' prefix if present
-    return result.output.replace(/^v/, "");
+    return result.output.trim();
   }
 
   // Fallback if no tags exist
-  console.warn("⚠️  No git tags found, using fallback version 0.0.0");
-  return "0.0.0";
+  console.warn("⚠️  No git tags found, using fallback version v1.0.0-dev");
+  return "v1.0.0-dev";
 }
 
 /**

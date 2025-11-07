@@ -14,6 +14,8 @@
  * - Environment-independent: Defaults work without environment variables
  */
 export const DEFAULT_CONFIG = {
+  /** Default VERSION file path  */
+  VERSION: "v1.0.0-dev",
   /** Default HTTP server port */
   PORT: 9000,
 
