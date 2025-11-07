@@ -19,6 +19,8 @@ import { dbCommand } from "./cli/commands/db.ts";
 import { initCommand } from "./cli/commands/init.ts";
 import { devCommand } from "./cli/commands/dev.ts";
 import { deployCommand } from "./cli/commands/deploy.ts";
+import type { ILogger } from "./core/interfaces/ILogger.ts";
+import { defaultLogger } from "./core/adapters/ConsoleStylerLogger.ts";
 
 // =============================================================================
 // CYBERPUNK COLOR PALETTE
@@ -76,8 +78,10 @@ export class GenesisRepl {
   private running = false;
   private history: string[] = [];
   private commandCount = 0;
+  private logger: ILogger;
 
-  constructor() {
+  constructor(logger: ILogger = defaultLogger) {
+    this.logger = logger;
     this.registerCommands();
   }
 
@@ -409,17 +413,18 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
         const errorMessage = error instanceof Error
           ? error.message
           : String(error);
-        console.error(
-          `\n${colors.red}✗ Error:${colors.reset} ${errorMessage}\n`,
-        );
+        this.logger.logError(`Command failed: ${errorMessage}`, {
+          command: commandName,
+          args,
+          error: error instanceof Error ? error.stack : undefined,
+        });
       }
     } else {
-      console.log(
-        `\n${colors.red}✗ Unknown command:${colors.reset} ${commandName}`,
-      );
-      console.log(
-        `${colors.dim}Type 'help' for available commands${colors.reset}\n`,
-      );
+      this.logger.logWarning(`Unknown command: ${commandName}`, {
+        command: commandName,
+        args,
+        suggestion: "Type 'help' for available commands",
+      });
     }
   }
 

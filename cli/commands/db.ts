@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write --allow-run --allow-net --allow-env
 
 /**
- * Deno Genesis Database Command
+ * Deno Genesis Database Command - Passwordless Unix Socket Authentication
  *
  * Unix Philosophy Implementation:
  * - Do one thing well: Setup MariaDB database with multi-tenant architecture
@@ -10,18 +10,26 @@
  * - Filter and transform: Take config → create database structure
  * - Composable: Can be scripted, automated, tested independently
  *
- * Security-First Approach:
- * - Unix socket authentication (no passwords over network)
- * - Sudoless authentication when properly configured
+ * Security-First Approach (NO SUDO REQUIRED):
+ * - Passwordless unix_socket authentication (OS-level security)
+ * - Zero passwords for local root access
  * - Minimal privilege principle for database users
  * - Secure by default configuration
  * - Auditable SQL execution
+ * - No network exposure (Unix socket only)
+ *
+ * Authentication Requirements:
+ * 1. User must be in mysql group (sudo usermod -aG mysql $USER)
+ * 2. MariaDB root configured with unix_socket plugin
+ * 3. Socket file permissions correct (/var/run/mysqld/mysqld.sock)
  *
  * Automation-First Philosophy:
  * - Sensible defaults for all options
  * - No interactive prompts - fully automated
+ * - No sudo required during operation
  * - Override via CLI arguments when needed
  * - Self-documenting output with console-styler
+ * - Automated verification of prerequisites
  */
 
 import { join } from "https://deno.land/std@0.224.0/path/mod.ts";
@@ -141,10 +149,18 @@ export async function dbCommand(
     console.log("  3. Start your Deno Genesis services");
 
     console.log("\n🔒 Security Notes:");
-    console.log("  • Using Unix socket authentication for optimal security");
+    console.log(
+      "  • Using passwordless Unix socket authentication (no sudo required)",
+    );
     console.log("  • Database user has minimal required privileges");
     console.log("  • Change default password in production environments");
     console.log("  • Review database schema in dg-config/database/");
+
+    console.log("\n📋 Authentication Setup:");
+    console.log("  This command uses passwordless unix_socket authentication:");
+    console.log("  1. Your user should be in the mysql group");
+    console.log("  2. MariaDB root user configured with unix_socket plugin");
+    console.log("  3. No passwords needed for local development!");
 
     logger.info("\n📖 Docs: See docs/06-backend/database-patterns.md");
 
@@ -272,12 +288,30 @@ async function executeDatabaseSetup(
   // Check if MariaDB is installed and running
   await checkMariaDBStatus(context);
 
+  // Verify passwordless authentication prerequisites
+  logger.info("Verifying passwordless Unix socket authentication...\n");
+
+  // Check user group membership
+  const hasGroupMembership = await checkMysqlGroupMembership(context);
+
+  // Check unix_socket plugin configuration
+  const hasUnixSocket = await checkUnixSocketPlugin(context);
+
+  if (!hasGroupMembership || !hasUnixSocket) {
+    logger.warning(
+      "\n⚠️  Passwordless authentication prerequisites not fully met.",
+    );
+    logger.info(
+      "   Setup may fail. Please complete the setup steps shown above.\n",
+    );
+  }
+
   // Test root connection
   logger.info("Testing MariaDB root access...");
   const rootAccess = await testRootAccess(context);
   if (!rootAccess) {
     throw new Error(
-      "Cannot connect to MariaDB as root. Please ensure MariaDB is running and you have root access.",
+      "Cannot connect to MariaDB via passwordless Unix socket. Please configure unix_socket authentication (see instructions above).",
     );
   }
 
@@ -297,9 +331,100 @@ async function executeDatabaseSetup(
   logger.info("Testing database connection...");
   const connectionTest = await testDatabaseConnection(config, context);
   if (!connectionTest) {
-    logger.warn(
+    logger.warning(
       "⚠️  Warning: Connection test failed, but setup may have succeeded.",
     );
+  }
+}
+
+/**
+ * Check if current user is in the mysql group
+ * Required for passwordless Unix socket authentication
+ */
+async function checkMysqlGroupMembership(
+  context: CLIContext,
+): Promise<boolean> {
+  try {
+    const cmd = new Deno.Command("groups", {
+      stdout: "piped",
+      stderr: "piped",
+    });
+
+    const { code, stdout } = await cmd.output();
+
+    if (code === 0) {
+      const groups = new TextDecoder().decode(stdout);
+      const isMember = groups.split(/\s+/).includes("mysql");
+
+      if (isMember) {
+        logger.success("✓ User is in mysql group");
+        return true;
+      } else {
+        logger.warning("⚠️  User is NOT in mysql group");
+        logger.info("   To enable passwordless access, run:");
+        logger.info("   sudo usermod -aG mysql $USER");
+        logger.info("   newgrp mysql");
+        return false;
+      }
+    }
+
+    return false;
+  } catch (error) {
+    if (context.verbose) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
+      logger.warning(`Could not check group membership: ${errorMessage}`);
+    }
+    return false;
+  }
+}
+
+/**
+ * Check MariaDB unix_socket authentication configuration
+ */
+async function checkUnixSocketPlugin(context: CLIContext): Promise<boolean> {
+  try {
+    const sql =
+      "SELECT plugin FROM mysql.user WHERE User='root' AND Host='localhost';";
+
+    const cmd = new Deno.Command("mysql", {
+      args: ["-u", "root", "--execute", sql, "--batch", "--skip-column-names"],
+      stdout: "piped",
+      stderr: "piped",
+    });
+
+    const { code, stdout } = await cmd.output();
+
+    if (code === 0) {
+      const plugin = new TextDecoder().decode(stdout).trim();
+
+      if (plugin === "unix_socket") {
+        logger.success("✓ unix_socket authentication is configured");
+        return true;
+      } else {
+        logger.warning(
+          `⚠️  Root user is using '${plugin}' instead of 'unix_socket'`,
+        );
+        logger.info("   To configure unix_socket authentication:");
+        logger.info("   1. Connect to MariaDB as root");
+        logger.info(
+          "   2. Run: ALTER USER 'root'@'localhost' IDENTIFIED VIA unix_socket;",
+        );
+        logger.info("   3. Run: FLUSH PRIVILEGES;");
+        return false;
+      }
+    }
+
+    return false;
+  } catch (error) {
+    if (context.verbose) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
+      logger.warning(`Could not check unix_socket plugin: ${errorMessage}`);
+    }
+    return false;
   }
 }
 
@@ -318,7 +443,7 @@ async function checkMariaDBStatus(context: CLIContext): Promise<void> {
     const { code } = await cmd.output();
 
     if (code !== 0) {
-      logger.warn("⚠️  MariaDB service may not be running");
+      logger.warning("⚠️  MariaDB service may not be running");
       logger.info("   Try: sudo systemctl start mariadb");
     } else {
       logger.success("✓ MariaDB service is running");
@@ -328,53 +453,60 @@ async function checkMariaDBStatus(context: CLIContext): Promise<void> {
       const errorMessage = error instanceof Error
         ? error.message
         : String(error);
-      logger.warn(`Note: Could not check MariaDB status: ${errorMessage}`);
+      logger.warning(`Note: Could not check MariaDB status: ${errorMessage}`);
     }
   }
 }
 
 /**
- * Test root access to MariaDB using Unix socket (sudoless when properly configured)
+ * Test root access to MariaDB using passwordless Unix socket authentication
+ * No sudo required - relies on unix_socket plugin and mysql group membership
  */
 async function testRootAccess(context: CLIContext): Promise<boolean> {
   try {
-    // Try direct Unix socket authentication first (sudoless - ideal)
-    const directCmd = new Deno.Command("mysql", {
+    const cmd = new Deno.Command("mysql", {
       args: ["-u", "root", "--execute", "SELECT 1;"],
       stdout: "piped",
       stderr: "piped",
     });
 
-    const { code: directCode } = await directCmd.output();
-
-    if (directCode === 0) {
-      logger.success("✓ Connected via Unix socket (sudoless)");
-      return true;
-    }
-
-    // Try with sudo as fallback (Unix socket with sudo)
-    const socketCmd = new Deno.Command("sudo", {
-      args: ["mysql", "-u", "root", "--execute", "SELECT 1;"],
-      stdout: "piped",
-      stderr: "piped",
-    });
-
-    const { code } = await socketCmd.output();
+    const { code, stderr } = await cmd.output();
 
     if (code === 0) {
-      logger.success("✓ Connected via Unix socket (with sudo)");
-      logger.info("💡 Tip: Configure user in mysql group for sudoless access");
+      logger.success("✓ Connected via passwordless Unix socket");
       return true;
     }
+
+    // Authentication failed - provide helpful guidance
+    const errorOutput = new TextDecoder().decode(stderr);
+    logger.error("✗ Passwordless Unix socket authentication failed");
+
+    if (context.verbose) {
+      logger.error(`   Error: ${errorOutput.trim()}`);
+    }
+
+    logger.info("\n📋 Setup Requirements:");
+    logger.info("   1. User must be in mysql group:");
+    logger.info("      sudo usermod -aG mysql $USER");
+    logger.info("      newgrp mysql");
+    logger.info("");
+    logger.info("   2. MariaDB root user must use unix_socket plugin:");
+    logger.info("      sudo mysql -u root");
+    logger.info(
+      "      ALTER USER 'root'@'localhost' IDENTIFIED VIA unix_socket;",
+    );
+    logger.info("      FLUSH PRIVILEGES;");
+    logger.info("");
+    logger.info("   3. Socket file permissions must be correct:");
+    logger.info("      ls -la /var/run/mysqld/mysqld.sock");
+    logger.info("      (should be: srwxrwxrwx 1 mysql mysql)");
 
     return false;
   } catch (error) {
-    if (context.verbose) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : String(error);
-      logger.error(`Root access test error: ${errorMessage}`);
-    }
+    const errorMessage = error instanceof Error
+      ? error.message
+      : String(error);
+    logger.error(`Root access test error: ${errorMessage}`);
     return false;
   }
 }
@@ -505,40 +637,31 @@ async function createDatabaseSchema(
 }
 
 /**
- * Execute SQL as root user via Unix socket (prefers sudoless)
+ * Execute SQL as root user via passwordless Unix socket authentication
+ * No sudo required - relies on unix_socket plugin configuration
  */
 async function executeSQLAsRoot(
   sql: string,
   context: CLIContext,
 ): Promise<void> {
-  // Try without sudo first (sudoless Unix socket - ideal)
-  try {
-    const cmd = new Deno.Command("mysql", {
-      args: ["-u", "root", "--execute", sql],
-      stdout: context.verbose ? "inherit" : "piped",
-      stderr: context.verbose ? "inherit" : "piped",
-    });
-
-    const { code } = await cmd.output();
-
-    if (code === 0) {
-      return;
-    }
-  } catch (error) {
-    // Fall through to try with sudo
-  }
-
-  // Try with sudo as fallback (Unix socket with sudo)
-  const cmd = new Deno.Command("sudo", {
-    args: ["mysql", "-u", "root", "--execute", sql],
+  const cmd = new Deno.Command("mysql", {
+    args: ["-u", "root", "--execute", sql],
     stdout: context.verbose ? "inherit" : "piped",
     stderr: context.verbose ? "inherit" : "piped",
   });
 
-  const { code } = await cmd.output();
+  const { code, stderr } = await cmd.output();
 
   if (code !== 0) {
-    throw new Error("Failed to execute SQL. Check MariaDB root access.");
+    const errorOutput = new TextDecoder().decode(stderr);
+
+    if (context.verbose) {
+      logger.error(`SQL execution failed: ${errorOutput}`);
+    }
+
+    throw new Error(
+      "Failed to execute SQL via passwordless Unix socket. Ensure unix_socket authentication is configured.",
+    );
   }
 }
 
@@ -590,15 +713,15 @@ async function testDatabaseConnection(
  */
 export function showDbHelp(): void {
   console.log(`
-🗄️  Deno Genesis Database Command - MariaDB Setup
+🗄️  Deno Genesis Database Command - Passwordless MariaDB Setup
 
 USAGE:
   genesis db [options]
 
 DESCRIPTION:
   Automated MariaDB database setup with multi-tenant architecture.
-  Uses Unix socket authentication for optimal security and performance.
-  No prompts - fully automated with sensible defaults.
+  Uses PASSWORDLESS Unix socket authentication - NO SUDO REQUIRED!
+  Fully automated with sensible defaults.
 
 OPTIONS:
   --name, --db-name NAME      Database name (default: universal_db)
@@ -611,7 +734,7 @@ OPTIONS:
   -h, --help                 Show this help message
 
 EXAMPLES:
-  # Automated setup with defaults
+  # Automated setup with defaults (no sudo needed!)
   genesis db
 
   # Setup with custom database name
@@ -632,11 +755,13 @@ DATABASE STRUCTURE:
   • contact_messages  - Contact form submissions
   • projects          - Portfolio/project entries
 
-CONNECTION:
-  Uses Unix socket (/var/run/mysqld/mysqld.sock) by default for:
-  • Enhanced security (no network exposure)
-  • Better performance (no TCP overhead)
-  • Sudoless authentication (when user in mysql group)
+PASSWORDLESS AUTHENTICATION:
+  This command uses MariaDB's unix_socket plugin for passwordless auth:
+
+  ✓ Enhanced security (OS-level authentication)
+  ✓ Zero passwords for local development
+  ✓ No sudo required (when properly configured)
+  ✓ Better performance (direct socket, no TCP)
 
   Environment variables for your sites:
   • DB_HOST=localhost
@@ -644,32 +769,52 @@ CONNECTION:
   • DB_PASSWORD=Password123!
   • DB_NAME=universal_db
 
-REQUIREMENTS:
-  • MariaDB server installed and running
-  • Root access to MariaDB via Unix socket
-  • Optional: User in mysql group for sudoless access
+PREREQUISITES:
+  1. MariaDB server installed and running:
+     sudo apt install mariadb-server   # Debian/Ubuntu
+     sudo systemctl start mariadb
+
+  2. Add your user to the mysql group:
+     sudo usermod -aG mysql $USER
+     newgrp mysql
+
+  3. Configure MariaDB root user for unix_socket authentication:
+     sudo mysql -u root
+     > ALTER USER 'root'@'localhost' IDENTIFIED VIA unix_socket;
+     > FLUSH PRIVILEGES;
+     > EXIT;
+
+  4. Verify socket permissions:
+     ls -la /var/run/mysqld/mysqld.sock
+     (should show: srwxrwxrwx 1 mysql mysql)
+
+VERIFICATION:
+  Test passwordless authentication:
+
+  mysql -u root -e "SELECT USER(), CURRENT_USER();"
+
+  If this works without sudo or password, you're ready!
 
 SECURITY:
-  • Uses Unix socket authentication (sudoless when configured)
+  • Uses unix_socket plugin for OS-level authentication
   • Minimal privilege principle for database users
   • Multi-tenant isolation via site_key
-  • Change default passwords in production!
+  • No passwords stored or transmitted for root access
+  • Change default app passwords in production!
 
-SUDOLESS SETUP:
-  For true sudoless authentication, add your user to mysql group:
-
-  sudo usermod -aG mysql $USER
-  newgrp mysql
-
-  Then configure MariaDB to allow socket authentication.
+TROUBLESHOOTING:
+  If authentication fails, the command will show you exactly what's missing:
+  - Whether you're in the mysql group
+  - Whether unix_socket plugin is configured
+  - Specific commands to fix the issues
 
 PHILOSOPHY:
   This command follows the Unix Philosophy:
-  - Do one thing well: Setup database
+  - Do one thing well: Setup database securely
   - Composable: Output can be tested, validated
   - Explicit: All operations are clearly logged
-  - Secure: Security-first by default
-  - Automated: No prompts, sensible defaults
+  - Secure: Security-first, passwordless by default
+  - Automated: No prompts, no sudo, sensible defaults
 
 For more information, see docs/06-backend/database-patterns.md
 `);
