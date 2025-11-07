@@ -252,3 +252,86 @@ export function security(config?: SecurityConfig): Middleware {
 
   return (ctx, next) => securityMiddleware(ctx, next);
 }
+
+// ================================================================================
+// 📦 BODY PARSING MIDDLEWARE
+// ================================================================================
+
+/**
+ * Body parser middleware exports
+ * Parse and validate request bodies (JSON, form-data, multipart, text)
+ */
+export {
+  json,
+  urlencoded,
+  multipart,
+  text,
+  bodyParser,
+} from "./parsers.ts";
+
+// ================================================================================
+// ✅ VALIDATION MIDDLEWARE
+// ================================================================================
+
+/**
+ * Request validation middleware and utilities
+ * Schema-based validation with comprehensive error handling
+ */
+export {
+  // Main validation middleware
+  validator,
+  validate,
+
+  // Error class
+  ValidationError,
+
+  // Helper functions for creating validation schemas
+  requiredString,
+  optionalString,
+  requiredNumber,
+  optionalNumber,
+  requiredBoolean,
+  optionalBoolean,
+  requiredEmail,
+  requiredUrl,
+  requiredEnum,
+  requiredArray,
+
+  // Types
+  type ValidationRule,
+  type ValidationSchema,
+  type Schema,
+} from "./validation.ts";
+
+// ================================================================================
+// 🔄 RE-EXPORTS FROM UTILITIES
+// ================================================================================
+
+/**
+ * Re-export commonly used utilities from @core/utils
+ * Makes it convenient to import everything from middleware module
+ */
+export {
+  createContext,
+  finalizeResponse,
+  commitResponse,
+  type Context,
+  type Handler,
+  type Middleware,
+  type ResponseState,
+} from "../utils/context.ts";
+
+export {
+  json as jsonResponse,
+  text as textResponse,
+  html as htmlResponse,
+  redirect,
+  notFound,
+  badRequest,
+  internalError,
+  forbidden,
+  unauthorized,
+  noContent,
+  status,
+  type ResponseOptions,
+} from "../utils/response.ts";

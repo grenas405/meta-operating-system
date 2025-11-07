@@ -57,7 +57,7 @@ export {
   multipart,
   text as textParser,
   urlencoded,
-} from "./utils/parsers.ts";
+} from "./middleware/parsers.ts";
 
 // Validation
 export {
@@ -74,8 +74,8 @@ export {
   validate,
   ValidationError,
   validator,
-} from "./utils/validator.ts";
-export type { Schema, ValidationRule, ValidationSchema } from "./utils/validator.ts";
+} from "./middleware/validation.ts";
+export type { Schema, ValidationRule, ValidationSchema } from "./middleware/validation.ts";
 
 // Error Handling
 export {

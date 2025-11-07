@@ -4,7 +4,7 @@
  * Uses only Deno built-in APIs
  */
 
-import type { Context, Middleware } from "./context.ts";
+import type { Context, Middleware } from "../utils/context.ts";
 import { ConsoleStyler } from "../utils/console-styler/mod.ts";
 
 /**

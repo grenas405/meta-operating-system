@@ -5,12 +5,17 @@
  */
 
 import { createRouter, registerCoreRoutes } from "./router.ts";
-import { bodyParser } from "./utils/parsers.ts";
 import {
   createPerformanceMiddleware,
   PerformanceMonitor,
 } from "./middleware/performanceMonitor.ts";
-import { errorHandler, logger, requestId, timing } from "./middleware/index.ts";
+import {
+  bodyParser,
+  errorHandler,
+  logger,
+  requestId,
+  timing,
+} from "./middleware/index.ts";
 import type { ILogger } from "./interfaces/mod.ts";
 import { defaultLogger } from "./adapters/mod.ts";
 import { env, type ServerConfig } from "./config/mod.ts";

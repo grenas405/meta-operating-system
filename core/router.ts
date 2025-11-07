@@ -4,19 +4,19 @@
  * No external dependencies - uses only Deno built-in APIs
  */
 
-import { compose } from "./middleware/index.ts";
-import type { PerformanceMonitor } from "./middleware/performanceMonitor.ts";
-import type { Context, Middleware } from "./utils/context.ts";
-import { createContext } from "./utils/context.ts";
-import { badRequest, json, notFound } from "./utils/response.ts";
-import type { ILogger } from "./interfaces/ILogger.ts";
 import {
+  compose,
   optionalString,
   requiredEmail,
   requiredNumber,
   requiredString,
   validator,
-} from "./utils/validator.ts";
+} from "./middleware/index.ts";
+import type { PerformanceMonitor } from "./middleware/performanceMonitor.ts";
+import type { Context, Middleware } from "./utils/context.ts";
+import { createContext } from "./utils/context.ts";
+import { badRequest, json, notFound } from "./utils/response.ts";
+import type { ILogger } from "./interfaces/ILogger.ts";
 
 export type RouteHandler = (ctx: Context) => Response | Promise<Response>;
 
