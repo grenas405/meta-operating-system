@@ -1,0 +1,22 @@
+{
+  "lsp": {
+    "enable": true,
+    "unstable": true,
+    "suggest": {
+      "completeFunctionCalls": true,
+      "names": true,
+      "paths": true,
+      "imports": true
+    },
+    "lint": true,
+    "format": true,
+    "inlayHints": {
+      "parameterNames": "all",
+      "parameterTypes": true,
+      "variableTypes": true,
+      "prpertyDeclartionTypes": true,
+      "functionLikeReturnTypes": true,
+      "enumMemberValues": true
+    }
+  }
+}
