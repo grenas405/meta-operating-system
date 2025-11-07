@@ -1,3 +1,4 @@
+#!/usr/bin/env -S deno run --allow-read --allow-write --allow-run --allow-net --allow-env
 /**
  * GENESIS REPL - Futuristic Unix-Style Command Interface
  * ========================================================
@@ -21,6 +22,7 @@ import { devCommand } from "./cli/commands/dev.ts";
 import { deployCommand } from "./cli/commands/deploy.ts";
 import type { ILogger } from "./core/interfaces/ILogger.ts";
 import { defaultLogger } from "./core/adapters/ConsoleStylerLogger.ts";
+import { CommandRunner } from "./core/utils/classes/commandRunner.ts";
 
 // =============================================================================
 // CYBERPUNK COLOR PALETTE
@@ -420,11 +422,56 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
         });
       }
     } else {
-      this.logger.logWarning(`Unknown command: ${commandName}`, {
-        command: commandName,
-        args,
-        suggestion: "Type 'help' for available commands",
-      });
+      // Fall through to shell command execution
+      await this.executeShellCommand(commandName, args);
+    }
+  }
+
+  /**
+   * Execute a Linux native command using Deno.Command wrapper
+   */
+  private async executeShellCommand(
+    cmd: string,
+    args: string[],
+  ): Promise<void> {
+    try {
+      // Show shell execution indicator
+      console.log(
+        `${colors.dim}[shell]${colors.reset} ${colors.electricBlue}${cmd} ${
+          args.join(" ")
+        }${colors.reset}`,
+      );
+
+      // Run the command with inherited stdio for direct output
+      const result = await CommandRunner.run(cmd, args, { inherit: true });
+
+      // Show exit code if non-zero (inherit mode doesn't capture stdout/stderr)
+      if (!result.success) {
+        console.log(
+          `${colors.dim}[exit code: ${colors.red}${result.code}${colors.reset}${colors.dim}]${colors.reset}`,
+        );
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
+
+      // Check if command doesn't exist
+      if (
+        errorMessage.includes("No such file or directory") ||
+        errorMessage.includes("entity not found")
+      ) {
+        this.logger.logWarning(`Unknown command: ${cmd}`, {
+          command: cmd,
+          args,
+          suggestion: "Type 'help' for Genesis commands",
+        });
+      } else {
+        this.logger.logError(`Shell command failed: ${errorMessage}`, {
+          command: cmd,
+          args,
+        });
+      }
     }
   }
 
@@ -507,7 +554,12 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
           continue;
         } else if (n === 1 && data[0] === 0x03) {
           // Ctrl+C - clear line
-          await Deno.stdout.write(encoder.encode("\r" + " ".repeat(this.getPrompt().length + line.length + 10) + "\r"));
+          await Deno.stdout.write(
+            encoder.encode(
+              "\r" + " ".repeat(this.getPrompt().length + line.length + 10) +
+                "\r",
+            ),
+          );
           return "";
         } else if (n === 1 && data[0] === 0x09) {
           // Tab - autocomplete
@@ -517,7 +569,12 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
             // Single match - complete it
             const completion = suggestions[0];
             // Clear current line
-            await Deno.stdout.write(encoder.encode("\r" + " ".repeat(this.getPrompt().length + line.length + 10) + "\r"));
+            await Deno.stdout.write(
+              encoder.encode(
+                "\r" + " ".repeat(this.getPrompt().length + line.length + 10) +
+                  "\r",
+              ),
+            );
             await Deno.stdout.write(encoder.encode(this.getPrompt()));
             line = completion;
             cursor = line.length;
@@ -525,12 +582,13 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
           } else if (suggestions.length > 1) {
             // Multiple matches - show them
             await Deno.stdout.write(encoder.encode("\n"));
-            const maxLen = Math.max(...suggestions.map(s => s.length));
+            const maxLen = Math.max(...suggestions.map((s) => s.length));
             const columns = Math.floor(80 / (maxLen + 2));
 
             for (let i = 0; i < suggestions.length; i++) {
               await Deno.stdout.write(encoder.encode(
-                colors.neonGreen + suggestions[i].padEnd(maxLen + 2) + colors.reset
+                colors.neonGreen + suggestions[i].padEnd(maxLen + 2) +
+                  colors.reset,
               ));
               if ((i + 1) % columns === 0) {
                 await Deno.stdout.write(encoder.encode("\n"));
@@ -549,7 +607,11 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
             line = line.slice(0, cursor - 1) + line.slice(cursor);
             cursor--;
             // Redraw line
-            await Deno.stdout.write(encoder.encode("\r" + this.getPrompt() + line + " \r" + this.getPrompt()));
+            await Deno.stdout.write(
+              encoder.encode(
+                "\r" + this.getPrompt() + line + " \r" + this.getPrompt(),
+              ),
+            );
             await Deno.stdout.write(encoder.encode(line.slice(0, cursor)));
           }
         } else if (n === 1 && (data[0] === 0x0A || data[0] === 0x0D)) {
@@ -576,7 +638,9 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
           // Redraw from cursor position
           await Deno.stdout.write(encoder.encode(char));
           if (cursor < line.length) {
-            await Deno.stdout.write(encoder.encode(line.slice(cursor) + "\r" + this.getPrompt()));
+            await Deno.stdout.write(
+              encoder.encode(line.slice(cursor) + "\r" + this.getPrompt()),
+            );
             await Deno.stdout.write(encoder.encode(line.slice(0, cursor)));
           }
         }

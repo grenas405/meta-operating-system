@@ -5,7 +5,7 @@
 // Wraps `Deno.Command` for safe, structured, and observable process execution.
 // ==============================================================================
 
-import { ConsoleStyler } from "../utils/consoleStyler.ts";
+import { ConsoleStyler } from "../console-styler/mod.ts";
 
 export interface CommandResult {
   success: boolean;
@@ -42,6 +42,18 @@ export class CommandRunner {
       stderr: inherit ? "inherit" : "piped",
     });
 
+    // Handle inherit mode - stdio goes directly to parent process
+    if (inherit) {
+      const result = await command.output();
+      return {
+        success: result.success,
+        code: result.code,
+        stdout: "",
+        stderr: "",
+      };
+    }
+
+    // Handle live streaming mode
     if (live) {
       const child = command.spawn();
       const decoder = this.textDecoder;
@@ -69,6 +81,7 @@ export class CommandRunner {
       };
     }
 
+    // Default mode - capture output
     const result = await command.output();
     return {
       success: result.success,
