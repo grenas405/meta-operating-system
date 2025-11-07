@@ -4,6 +4,7 @@
  * Designed to run as a systemd service with elevated privileges
  * No external dependencies - uses only Deno built-in APIs
  */
+
 import type { ILogger } from "./core/interfaces/mod.ts";
 import { defaultLogger } from "./core/adapters/mod.ts";
 import { env, type KernelConfig } from "./core/config/mod.ts";

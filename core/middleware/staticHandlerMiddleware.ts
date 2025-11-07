@@ -207,7 +207,7 @@
 // ================================================================================
 
 import type { Context } from "../utils/context.ts";
-import { commitResponse } from "../utils/context.ts";
+import { commitResponse, finalizeResponse } from "../utils/context.ts";
 
 // ================================================================================
 // 📦 TYPE DEFINITIONS
@@ -1018,7 +1018,7 @@ export class StaticFileHandler {
       if (this.hasDirectoryTraversal(filePath)) {
         console.warn(`🚨 Directory traversal attempt blocked: ${filePath}`);
         commitResponse(ctx, { status: 403, body: "Forbidden" });
-        return;
+        return finalizeResponse(ctx);
       }
 
       try {
@@ -1086,7 +1086,7 @@ export class StaticFileHandler {
         if (config.maxFileSize && stats.size > config.maxFileSize) {
           console.warn(`📏 File too large: ${filePath} (${stats.size} bytes)`);
           commitResponse(ctx, { status: 413, body: "File too large" });
-          return;
+          return finalizeResponse(ctx);
         }
 
         // =====================================================================
@@ -1106,7 +1106,7 @@ export class StaticFileHandler {
          * - Send full file
          */
         if (await this.handleConditionalRequest(ctx, stats, resolvedPath, config)) {
-          return;  // 304 sent, done
+          return finalizeResponse(ctx);  // 304 sent, done
         }
 
         // =====================================================================
@@ -1118,6 +1118,7 @@ export class StaticFileHandler {
     } catch (error) {
       console.error(`❌ Static file error for ${filePath}:`, error);
       commitResponse(ctx, { status: 500, body: "Internal Server Error" });
+      return finalizeResponse(ctx);
     }
   };
 }
@@ -1271,12 +1272,12 @@ export class StaticFileHandler {
     // SEND RESPONSE
     // =========================================================================
     
-    commitResponse(ctx, { status: 200, body: compressedContent });
+    commitResponse(ctx, { status: 200, body: compressedContent as BodyInit });
 
     // =========================================================================
     // ANALYTICS
     // =========================================================================
-    
+
     /**
      * TRACK REQUEST:
      * Record for analytics
@@ -1285,6 +1286,8 @@ export class StaticFileHandler {
      * - Request count
      */
     StaticFileAnalytics.recordRequest(filePath, fileContent.length);
+
+    return finalizeResponse(ctx);
   }
 
   /**
@@ -1702,7 +1705,7 @@ export class StaticFileHandler {
    * @static
    */
   private static shouldCompress(extension: string, config: StaticFileConfig): boolean {
-    return (config.enableGzip !== false || config.enableBrotli) && 
+    return (config.enableGzip !== false || Boolean(config.enableBrotli)) &&
            this.COMPRESSIBLE_TYPES.has(extension);
   }
 }
