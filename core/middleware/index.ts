@@ -27,6 +27,11 @@ import {
   type StaticFileConfig,
 } from "./staticHandlerMiddleware.ts";
 import { PerformanceMonitor } from "./performanceMonitor.ts";
+import {
+  createCorsMiddleware,
+  CorsPresets,
+  type CorsOptions,
+} from "./corsMiddleware.ts";
 
 /**
  * Compose multiple middleware functions into a single handler.
@@ -85,45 +90,41 @@ export function logger(logger: ILogger): Middleware {
 }
 
 /**
- * CORS middleware - adds CORS headers
+ * CORS middleware - adds CORS headers using the staging pattern
+ *
+ * @example
+ * // Development (allow all)
+ * app.use(cors());
+ *
+ * @example
+ * // Production (specific origins)
+ * app.use(cors({
+ *   origin: ["https://myapp.com", "https://admin.myapp.com"],
+ *   credentials: true,
+ * }));
+ *
+ * @example
+ * // Using presets
+ * app.use(cors(CorsPresets.PRODUCTION(["https://myapp.com"])));
  */
-export function cors(options: {
-  origin?: string;
-  methods?: string[];
-  headers?: string[];
-} = {}): Middleware {
-  const origin = options.origin ?? "*";
-  const methods = options.methods?.join(", ") ??
-    "GET, POST, PUT, DELETE, OPTIONS";
-  const headers = options.headers?.join(", ") ?? "Content-Type, Authorization";
+export function cors(options?: CorsOptions): Middleware {
+  const environment = Deno.env.get("DENO_ENV") || Deno.env.get("ENV") || "development";
 
-  return async (ctx, next) => {
-    // Handle preflight
-    if (ctx.request.method === "OPTIONS") {
-      return new Response(null, {
-        status: 204,
-        headers: {
-          "Access-Control-Allow-Origin": origin,
-          "Access-Control-Allow-Methods": methods,
-          "Access-Control-Allow-Headers": headers,
-        },
-      });
+  // Auto-detect safe defaults based on environment
+  if (!options) {
+    if (environment === "production") {
+      const allowedOrigins = Deno.env.get("ALLOWED_ORIGINS")?.split(",") ?? [];
+      if (allowedOrigins.length === 0) {
+        throw new Error(
+          "CORS: Production environment requires ALLOWED_ORIGINS environment variable"
+        );
+      }
+      return createCorsMiddleware(CorsPresets.PRODUCTION(allowedOrigins));
     }
+    return createCorsMiddleware(CorsPresets.DEVELOPMENT);
+  }
 
-    const response = await next();
-
-    // Clone response to add headers
-    const headers_obj = new Headers(response.headers);
-    headers_obj.set("Access-Control-Allow-Origin", origin);
-    headers_obj.set("Access-Control-Allow-Methods", methods);
-    headers_obj.set("Access-Control-Allow-Headers", headers);
-
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: headers_obj,
-    });
-  };
+  return createCorsMiddleware(options);
 }
 
 /**
@@ -280,6 +281,16 @@ export function staticHandler(
 
   return StaticFileHandler.createMiddleware(finalConfig);
 }
+
+// ================================================================================
+// 🌐 CORS MIDDLEWARE
+// ================================================================================
+
+/**
+ * CORS middleware types and presets
+ * Re-exported for convenience when configuring CORS
+ */
+export { CorsPresets, type CorsOptions } from "./corsMiddleware.ts";
 
 // ================================================================================
 // 📦 BODY PARSING MIDDLEWARE
