@@ -1,7 +1,7 @@
 import { Kernel } from "./kernel.ts";
 
 const kernel = new Kernel({
-  serverPort: 3000,
+  serverPort: 9000,
   serverHostname: "localhost",
   debug: true,
 });
