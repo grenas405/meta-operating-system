@@ -81,9 +81,11 @@ export class GenesisRepl {
   private history: string[] = [];
   private commandCount = 0;
   private logger: ILogger;
+  private rootDirectory: string;
 
   constructor(logger: ILogger = defaultLogger) {
     this.logger = logger;
+    this.rootDirectory = Deno.cwd(); // Lock to directory where REPL was started
     this.registerCommands();
   }
 
@@ -473,24 +475,54 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
 
   /**
    * Change directory with support for .. and absolute/relative paths
+   * Restricted to rootDirectory and subdirectories only
    */
   private changeDirectory(args: string[]): void {
     try {
+      const currentDir = Deno.cwd();
+
       if (args.length === 0) {
-        // No argument - go to home directory
-        const home = Deno.env.get("HOME") || Deno.env.get("USERPROFILE") || "/";
-        Deno.chdir(home);
-        console.log(`${colors.dim}Changed to: ${Deno.cwd()}${colors.reset}`);
-      } else {
-        const target = args[0];
-        Deno.chdir(target);
-        console.log(`${colors.dim}Changed to: ${Deno.cwd()}${colors.reset}`);
+        // No argument - go to root directory (not home)
+        Deno.chdir(this.rootDirectory);
+        console.log(
+          `${colors.neonCyan}[${colors.bright}DIRECTORY${colors.reset}${colors.neonCyan}]${colors.reset} ${colors.dim}${this.rootDirectory}${colors.reset}`
+        );
+        return;
       }
+
+      const target = args[0];
+
+      // Try to change directory temporarily to resolve the path
+      Deno.chdir(target);
+      const resolvedPath = Deno.cwd();
+
+      // Check if resolved path is within or equal to root directory
+      if (!resolvedPath.startsWith(this.rootDirectory)) {
+        // Revert to previous directory
+        Deno.chdir(currentDir);
+        console.log(
+          `\n${colors.red}${colors.bright}[ACCESS DENIED]${colors.reset}`
+        );
+        console.log(
+          `${colors.dim}Cannot navigate above root directory: ${colors.neonCyan}${this.rootDirectory}${colors.reset}`
+        );
+        console.log(
+          `${colors.dim}Requested path would resolve to: ${colors.red}${resolvedPath}${colors.reset}\n`
+        );
+        return;
+      }
+
+      // Path is valid - display success message
+      console.log(
+        `${colors.neonCyan}[${colors.bright}DIRECTORY${colors.reset}${colors.neonCyan}]${colors.reset} ${colors.dim}${resolvedPath}${colors.reset}`
+      );
     } catch (error) {
       const errorMessage = error instanceof Error
         ? error.message
         : String(error);
-      this.logger.logError(`cd: ${errorMessage}`, { path: args[0] });
+      console.log(
+        `\n${colors.red}${colors.bright}[ERROR]${colors.reset} ${colors.dim}cd: ${errorMessage}${colors.reset}\n`
+      );
     }
   }
 
@@ -804,22 +836,64 @@ ${colors.dim}For more information, type 'help' to see all available commands.${c
     args: string[],
   ): Promise<void> {
     try {
-      // Show shell execution indicator
+      // Map of common Unix commands to their display categories
+      const commandCategories: Record<string, string> = {
+        ls: "FILE SYSTEM",
+        pwd: "DIRECTORY",
+        cd: "DIRECTORY",
+        mkdir: "FILE SYSTEM",
+        rm: "FILE SYSTEM",
+        cp: "FILE SYSTEM",
+        mv: "FILE SYSTEM",
+        cat: "FILE VIEWER",
+        grep: "SEARCH",
+        find: "SEARCH",
+        git: "VERSION CONTROL",
+        npm: "PACKAGE MANAGER",
+        curl: "NETWORK",
+        wget: "NETWORK",
+        touch: "FILE SYSTEM",
+        chmod: "PERMISSIONS",
+        chown: "PERMISSIONS",
+        ps: "PROCESS",
+        kill: "PROCESS",
+        top: "PROCESS",
+        echo: "OUTPUT",
+        tree: "FILE SYSTEM",
+        which: "SYSTEM",
+        whoami: "SYSTEM",
+        date: "SYSTEM",
+        uname: "SYSTEM",
+      };
+
+      const category = commandCategories[cmd] || "SHELL";
+      const fullCommand = args.length > 0 ? `${cmd} ${args.join(" ")}` : cmd;
+
+      // Show futuristic shell execution indicator
       console.log(
-        `${colors.dim}[shell]${colors.reset} ${colors.electricBlue}${cmd} ${
-          args.join(" ")
-        }${colors.reset}`,
+        `\n${colors.neonCyan}╭─[${colors.bright}${category}${colors.reset}${colors.neonCyan}]${"─".repeat(Math.max(60 - category.length, 10))}╮${colors.reset}`
+      );
+      console.log(
+        `${colors.neonCyan}│${colors.reset} ${colors.neonPink}▸${colors.reset} ${colors.electricBlue}${fullCommand}${colors.reset}`
+      );
+      console.log(
+        `${colors.neonCyan}╰${"─".repeat(62)}╯${colors.reset}\n`
       );
 
       // Run the command with inherited stdio for direct output
       const result = await CommandRunner.run(cmd, args, { inherit: true });
 
-      // Show exit code if non-zero (inherit mode doesn't capture stdout/stderr)
-      if (!result.success) {
+      // Show stylized exit status
+      if (result.success) {
         console.log(
-          `${colors.dim}[exit code: ${colors.red}${result.code}${colors.reset}${colors.dim}]${colors.reset}`,
+          `\n${colors.dim}${colors.neonGreen}[✓] Command completed successfully${colors.reset}`
+        );
+      } else {
+        console.log(
+          `\n${colors.red}${colors.bright}[✗] Exit code: ${result.code}${colors.reset}`
         );
       }
+      console.log(); // Extra spacing
     } catch (error) {
       const errorMessage = error instanceof Error
         ? error.message
@@ -830,16 +904,28 @@ ${colors.dim}For more information, type 'help' to see all available commands.${c
         errorMessage.includes("No such file or directory") ||
         errorMessage.includes("entity not found")
       ) {
-        this.logger.logWarning(`Unknown command: ${cmd}`, {
-          command: cmd,
-          args,
-          suggestion: "Type 'help' for Genesis commands",
-        });
+        console.log(
+          `\n${colors.red}${colors.bright}╭─[COMMAND NOT FOUND]${"─".repeat(42)}╮${colors.reset}`
+        );
+        console.log(
+          `${colors.red}${colors.bright}│${colors.reset} ${colors.dim}Unknown command: ${colors.reset}${colors.electricBlue}${cmd}${colors.reset}`
+        );
+        console.log(
+          `${colors.red}${colors.bright}│${colors.reset} ${colors.dim}Type ${colors.neonGreen}'help'${colors.reset}${colors.dim} for Genesis commands${colors.reset}`
+        );
+        console.log(
+          `${colors.red}${colors.bright}╰${"─".repeat(62)}╯${colors.reset}\n`
+        );
       } else {
-        this.logger.logError(`Shell command failed: ${errorMessage}`, {
-          command: cmd,
-          args,
-        });
+        console.log(
+          `\n${colors.red}${colors.bright}╭─[EXECUTION ERROR]${"─".repeat(44)}╮${colors.reset}`
+        );
+        console.log(
+          `${colors.red}${colors.bright}│${colors.reset} ${colors.dim}${errorMessage}${colors.reset}`
+        );
+        console.log(
+          `${colors.red}${colors.bright}╰${"─".repeat(62)}╯${colors.reset}\n`
+        );
       }
     }
   }
