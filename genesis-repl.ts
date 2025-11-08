@@ -22,7 +22,7 @@ import { devCommand } from "./cli/commands/dev.ts";
 import { deployCommand } from "./cli/commands/deploy.ts";
 import type { ILogger } from "./core/interfaces/ILogger.ts";
 import { defaultLogger } from "./core/adapters/ConsoleStylerLogger.ts";
-import { CommandRunner } from "./core/utils/classes/commandRunner.ts";
+import { CommandRunner } from "./commandRunner.ts";
 
 // =============================================================================
 // CYBERPUNK COLOR PALETTE
@@ -389,7 +389,12 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
 
       if (i + 1 < linuxCommands.length) {
         const [cmd2, desc2] = linuxCommands[i + 1];
-        console.log(entry1.padEnd(70) + `  ${colors.neonGreen}${cmd2.padEnd(12)}${colors.reset} ${colors.dim}│${colors.reset} ${desc2}`);
+        console.log(
+          entry1.padEnd(70) +
+            `  ${colors.neonGreen}${
+              cmd2.padEnd(12)
+            }${colors.reset} ${colors.dim}│${colors.reset} ${desc2}`,
+        );
       } else {
         console.log(entry1);
       }
