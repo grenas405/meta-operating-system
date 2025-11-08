@@ -38,7 +38,7 @@ class Kernel {
 
     this.systemInfo = {
       startTime: Date.now(),
-      version: "0.1.0",
+      version: "v1.0.0-dev",
       pid: Deno.pid,
       platform: Deno.build.os,
     };
@@ -549,7 +549,9 @@ class Kernel {
     // Get git version info and update systemInfo
     const gitVersionInfo = await getGitVersionInfo();
     this.systemInfo.version = gitVersionInfo.version;
-    this.log(`Version: ${gitVersionInfo.version} (${gitVersionInfo.commitHash})`);
+    this.log(
+      `Version: ${gitVersionInfo.version} (${gitVersionInfo.commitHash})`,
+    );
 
     // Display startup banner
     // NOTE: renderBanner is not part of ILogger interface - using ConsoleStyler directly for now
