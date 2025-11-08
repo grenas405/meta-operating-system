@@ -166,10 +166,9 @@ export class RemoteLogger {
         this.config.onSuccess?.(destination, logs.length);
         return;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
         console.warn(
           `[RemoteLogger] Attempt ${attemptCount}/${maxRetries} failed for ${destination.name}:`,
-          errorMessage,
+          error.message,
         );
 
         if (attemptCount < maxRetries) {

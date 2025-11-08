@@ -1,17 +1,28 @@
-/**
- * ConsoleStyler Logger Adapter
- * Adapts ConsoleStyler's static methods to implement the ILogger interface
- * for dependency injection and testability.
- */
+// ==============================================================================
+// 🎨 ConsoleStyler Logger Adapter
+// ------------------------------------------------------------------------------
+// Adapter that implements ILogger interface using ConsoleStyler
+// Allows ConsoleStyler to be used via dependency injection
+// ==============================================================================
 
 import { ConsoleStyler } from "../core/console.ts";
-import type { ILogger } from "../../../interfaces/ILogger.ts";
+import type { ILogger } from "../interfaces/ILogger.ts";
 
 /**
- * Adapter class that wraps ConsoleStyler's static methods
- * to implement the ILogger interface
+ * Adapter that wraps ConsoleStyler to implement ILogger interface
+ *
+ * DESIGN PATTERN: Adapter Pattern
+ * - Adapts ConsoleStyler's static API to ILogger interface
+ * - Enables dependency injection
+ * - Allows swapping ConsoleStyler with other logging implementations
+ *
+ * USAGE:
+ * ```typescript
+ * const logger: ILogger = new ConsoleStylerLogger();
+ * logger.logInfo("Server starting", { port: 8000 });
+ * ```
  */
-export class ConsoleStylerAdapter implements ILogger {
+export class ConsoleStylerLogger implements ILogger {
   logInfo(message: string, metadata?: Record<string, unknown>): void {
     ConsoleStyler.logInfo(message, metadata);
   }
@@ -51,14 +62,13 @@ export class ConsoleStylerAdapter implements ILogger {
     colorName?: string,
     style?: "standard" | "heavy" | "double" | "simple",
   ): void {
+    // Cast to any to handle ConsoleStyler's complex color type unions
     ConsoleStyler.logSection(title, colorName as any, style);
   }
 }
 
 /**
- * Factory function to create a ConsoleStyler logger instance
- * @returns ILogger instance backed by ConsoleStyler
+ * Default logger instance for convenience
+ * Use this when you don't need to customize the logger
  */
-export function createConsoleLogger(): ILogger {
-  return new ConsoleStylerAdapter();
-}
+export const defaultLogger: ILogger = new ConsoleStylerLogger();

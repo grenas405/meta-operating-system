@@ -1,0 +1,12 @@
+[2025-11-08 15:03:04] INFO     Prompt ingested {"tokens":248,"compression":"29%","voice":["analytical","playful","grounded"]}
+[2025-11-08 15:03:06] DEBUG    Thought checkpoint {"stage":"Interpret prompt","intent":"separate asks vs. constraints","confidence":"93%"}
+[2025-11-08 15:03:06] DEBUG    Thought checkpoint {"stage":"Retrieve motifs","intent":"find metaphors & telemetry links","confidence":"88%"}
+[2025-11-08 15:03:06] DEBUG    Thought checkpoint {"stage":"Plan visuals","intent":"map console primitives to story beats","confidence":"86%"}
+[2025-11-08 15:03:07] DEBUG    Thought checkpoint {"stage":"Simulate output","intent":"sequence tables/boxes/charts","confidence":"81%"}
+[2025-11-08 15:03:07] DEBUG    Thought checkpoint {"stage":"Emit response","intent":"stream narrative tokens","confidence":"95%"}
+[2025-11-08 15:04:20] INFO     Prompt ingested {"tokens":248,"compression":"29%","voice":["analytical","playful","grounded"]}
+[2025-11-08 15:04:22] DEBUG    Thought checkpoint {"stage":"Interpret prompt","intent":"separate asks vs. constraints","confidence":"93%"}
+[2025-11-08 15:04:22] DEBUG    Thought checkpoint {"stage":"Retrieve motifs","intent":"find metaphors & telemetry links","confidence":"88%"}
+[2025-11-08 15:04:24] DEBUG    Thought checkpoint {"stage":"Plan visuals","intent":"map console primitives to story beats","confidence":"86%"}
+[2025-11-08 15:04:24] DEBUG    Thought checkpoint {"stage":"Simulate output","intent":"sequence tables/boxes/charts","confidence":"81%"}
+[2025-11-08 15:04:25] DEBUG    Thought checkpoint {"stage":"Emit response","intent":"stream narrative tokens","confidence":"95%"}

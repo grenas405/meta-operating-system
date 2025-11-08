@@ -1,0 +1,237 @@
+{
+  "version": "1.0.0",
+  "exportTime": "2025-11-07T21:50:16.164Z",
+  "logs": [
+    {
+      "timestamp": "2025-11-07T13:59:50.029Z",
+      "level": "debug",
+      "message": "[decoder] Token emitted",
+      "metadata": {
+        "token": " the",
+        "logit": "-2.01",
+        "topP": "88%",
+        "position": 2
+      },
+      "namespace": "decoder"
+    },
+    {
+      "timestamp": "2025-11-07T13:59:50.153Z",
+      "level": "debug",
+      "message": "[decoder] Token emitted",
+      "metadata": {
+        "token": " life",
+        "logit": "-1.74",
+        "topP": "85%",
+        "position": 3
+      },
+      "namespace": "decoder"
+    },
+    {
+      "timestamp": "2025-11-07T13:59:50.261Z",
+      "level": "debug",
+      "message": "[decoder] Token emitted",
+      "metadata": {
+        "token": " of",
+        "logit": "-1.65",
+        "topP": "83%",
+        "position": 4
+      },
+      "namespace": "decoder"
+    },
+    {
+      "timestamp": "2025-11-07T13:59:50.359Z",
+      "level": "debug",
+      "message": "[decoder] Token emitted",
+      "metadata": {
+        "token": " an",
+        "logit": "-1.56",
+        "topP": "82%",
+        "position": 5
+      },
+      "namespace": "decoder"
+    },
+    {
+      "timestamp": "2025-11-07T13:59:50.482Z",
+      "level": "debug",
+      "message": "[decoder] Token emitted",
+      "metadata": {
+        "token": " LLM",
+        "logit": "-1.48",
+        "topP": "80%",
+        "position": 6
+      },
+      "namespace": "decoder"
+    },
+    {
+      "timestamp": "2025-11-07T13:59:50.591Z",
+      "level": "debug",
+      "message": "[decoder] Token emitted",
+      "metadata": {
+        "token": " through",
+        "logit": "-1.37",
+        "topP": "78%",
+        "position": 7
+      },
+      "namespace": "decoder"
+    },
+    {
+      "timestamp": "2025-11-07T13:59:50.711Z",
+      "level": "debug",
+      "message": "[decoder] Token emitted",
+      "metadata": {
+        "token": " telemetry",
+        "logit": "-1.09",
+        "topP": "74%",
+        "position": 8
+      },
+      "namespace": "decoder"
+    },
+    {
+      "timestamp": "2025-11-07T13:59:50.818Z",
+      "level": "debug",
+      "message": "[decoder] Token emitted",
+      "metadata": {
+        "token": " and",
+        "logit": "-1.15",
+        "topP": "72%",
+        "position": 9
+      },
+      "namespace": "decoder"
+    },
+    {
+      "timestamp": "2025-11-07T13:59:50.928Z",
+      "level": "debug",
+      "message": "[decoder] Token emitted",
+      "metadata": {
+        "token": " color.",
+        "logit": "-0.98",
+        "topP": "71%",
+        "position": 10
+      },
+      "namespace": "decoder"
+    },
+    {
+      "timestamp": "2025-11-07T21:50:12.420Z",
+      "level": "success",
+      "message": "[retrieval] Semantic weft stitched",
+      "metadata": {
+        "slotsFilled": [
+          "metaphor",
+          "mechanics",
+          "self-awareness"
+        ],
+        "recallLatency": "1.3s",
+        "tokenOverlap": "18.0%"
+      },
+      "namespace": "retrieval"
+    },
+    {
+      "timestamp": "2025-11-07T21:50:13.638Z",
+      "level": "debug",
+      "message": "[decoder] Token emitted",
+      "metadata": {
+        "token": " the",
+        "logit": "-2.01",
+        "topP": "88%",
+        "position": 2
+      },
+      "namespace": "decoder"
+    },
+    {
+      "timestamp": "2025-11-07T21:50:13.815Z",
+      "level": "debug",
+      "message": "[decoder] Token emitted",
+      "metadata": {
+        "token": " life",
+        "logit": "-1.74",
+        "topP": "85%",
+        "position": 3
+      },
+      "namespace": "decoder"
+    },
+    {
+      "timestamp": "2025-11-07T21:50:14.044Z",
+      "level": "debug",
+      "message": "[decoder] Token emitted",
+      "metadata": {
+        "token": " of",
+        "logit": "-1.65",
+        "topP": "83%",
+        "position": 4
+      },
+      "namespace": "decoder"
+    },
+    {
+      "timestamp": "2025-11-07T21:50:14.706Z",
+      "level": "debug",
+      "message": "[decoder] Token emitted",
+      "metadata": {
+        "token": " an",
+        "logit": "-1.56",
+        "topP": "82%",
+        "position": 5
+      },
+      "namespace": "decoder"
+    },
+    {
+      "timestamp": "2025-11-07T21:50:14.860Z",
+      "level": "debug",
+      "message": "[decoder] Token emitted",
+      "metadata": {
+        "token": " LLM",
+        "logit": "-1.48",
+        "topP": "80%",
+        "position": 6
+      },
+      "namespace": "decoder"
+    },
+    {
+      "timestamp": "2025-11-07T21:50:14.966Z",
+      "level": "debug",
+      "message": "[decoder] Token emitted",
+      "metadata": {
+        "token": " through",
+        "logit": "-1.37",
+        "topP": "78%",
+        "position": 7
+      },
+      "namespace": "decoder"
+    },
+    {
+      "timestamp": "2025-11-07T21:50:15.317Z",
+      "level": "debug",
+      "message": "[decoder] Token emitted",
+      "metadata": {
+        "token": " telemetry",
+        "logit": "-1.09",
+        "topP": "74%",
+        "position": 8
+      },
+      "namespace": "decoder"
+    },
+    {
+      "timestamp": "2025-11-07T21:50:15.458Z",
+      "level": "debug",
+      "message": "[decoder] Token emitted",
+      "metadata": {
+        "token": " and",
+        "logit": "-1.15",
+        "topP": "72%",
+        "position": 9
+      },
+      "namespace": "decoder"
+    },
+    {
+      "timestamp": "2025-11-07T21:50:15.866Z",
+      "level": "debug",
+      "message": "[decoder] Token emitted",
+      "metadata": {
+        "token": " color.",
+        "logit": "-0.98",
+        "topP": "71%",
+        "position": 10
+      },
+      "namespace": "decoder"
+    }
+  ]
+}

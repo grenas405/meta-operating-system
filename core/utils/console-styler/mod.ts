@@ -10,25 +10,10 @@ export { ConfigBuilder } from "./core/config.ts";
 export { ColorSystem } from "./core/colors.ts";
 export { Formatter } from "./core/formatter.ts";
 export { ConsoleStyler } from "./core/console.ts";
-export {
-  commonDestinations,
-  createRemoteLogger,
-  RemoteLogger,
-} from "./core/remote-logger.ts";
-export type {
-  RemoteDestination,
-  RemoteLoggerConfig,
-} from "./core/remote-logger.ts";
 
 // Types
-export type {
-  LogEntry,
-  LogLevel,
-  LogOutput,
-  Plugin,
-  StylerConfig,
-  Theme,
-} from "./core/config.ts";
+export type { LogEntry, LogLevel, LogOutput, Plugin, StylerConfig, Theme } from "./core/config.ts";
+export type { ILogger } from "./interfaces/ILogger.ts";
 
 // Components
 export { TableRenderer } from "./components/tables.ts";
@@ -38,10 +23,7 @@ export { BoxRenderer } from "./components/boxes.ts";
 export type { BoxOptions, BoxStyle } from "./components/boxes.ts";
 
 export { ProgressBar, Spinner } from "./components/progress.ts";
-export type {
-  ProgressBarOptions,
-  SpinnerOptions,
-} from "./components/progress.ts";
+export type { ProgressBarOptions, SpinnerOptions } from "./components/progress.ts";
 
 export { BannerRenderer } from "./components/banners.ts";
 export type { BannerOptions } from "./components/banners.ts";
@@ -58,6 +40,7 @@ export {
   getTheme,
   minimalTheme,
   neonTheme,
+  redAlertTheme,
   themes,
 } from "./themes/mod.ts";
 
@@ -84,7 +67,7 @@ export type { HonoLoggerOptions } from "./adapters/hono.ts";
 export { expressLogger } from "./adapters/express.ts";
 export type { ExpressLoggerOptions } from "./adapters/express.ts";
 
-export { ConsoleStylerAdapter, createConsoleLogger } from "./adapters/logger-adapter.ts";
+export { ConsoleStylerLogger, defaultLogger } from "./adapters/mod.ts";
 
 // Utilities
 export { TerminalDetector } from "./utils/terminal.ts";
