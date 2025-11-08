@@ -16,6 +16,10 @@ import {
 
 import { env } from "./mod.ts";
 import { MetaRepl } from "./repl.ts";
+import {
+  generateVersionFileFromGit,
+  getGitVersionInfo,
+} from "./core/utils/gitVersionGenerator.ts";
 
 class Kernel {
   private config: KernelConfig;
@@ -538,6 +542,15 @@ class Kernel {
    * Start the kernel
    */
   async boot(): Promise<void> {
+    // Generate VERSION file from git before boot
+    this.log("Generating VERSION file from git...");
+    await generateVersionFileFromGit();
+
+    // Get git version info and update systemInfo
+    const gitVersionInfo = await getGitVersionInfo();
+    this.systemInfo.version = gitVersionInfo.version;
+    this.log(`Version: ${gitVersionInfo.version} (${gitVersionInfo.commitHash})`);
+
     // Display startup banner
     // NOTE: renderBanner is not part of ILogger interface - using ConsoleStyler directly for now
     // This is acceptable as banners are a specialized formatting concern
@@ -546,7 +559,7 @@ class Kernel {
     );
     ConsoleStyler.renderBanner({
       version: this.systemInfo.version,
-      buildDate: new Date().toISOString(),
+      buildDate: gitVersionInfo.buildDate,
       environment: this.config.environment,
       port: this.config.serverPort,
       author: "Pedro M. Dominguez",
