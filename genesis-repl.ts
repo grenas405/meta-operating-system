@@ -23,32 +23,29 @@ import { deployCommand } from "./cli/commands/deploy.ts";
 import type { ILogger } from "./core/interfaces/ILogger.ts";
 import { defaultLogger } from "./core/adapters/ConsoleStylerLogger.ts";
 import { CommandRunner } from "./commandRunner.ts";
+import { BoxRenderer, ColorSystem } from "./core/utils/console-styler/mod.ts";
 
 // =============================================================================
 // CYBERPUNK COLOR PALETTE
 // =============================================================================
 
 const colors = {
-  // Neon primary colors
-  neonCyan: "\x1b[38;2;0;255;255m",
-  neonPink: "\x1b[38;2;255;0;255m",
-  neonGreen: "\x1b[38;2;0;255;136m",
-  electricBlue: "\x1b[38;2;0;128;255m",
-  plasma: "\x1b[38;2;138;43;226m",
+  // Neon primary colors using RGB
+  neonCyan: ColorSystem.rgb(0, 255, 255),
+  neonPink: ColorSystem.rgb(255, 0, 255),
+  neonGreen: ColorSystem.rgb(0, 255, 136),
+  electricBlue: ColorSystem.rgb(0, 128, 255),
+  plasma: ColorSystem.rgb(138, 43, 226),
 
   // Accent colors
-  gold: "\x1b[38;2;255;215;0m",
-  orange: "\x1b[38;2;255;165;0m",
-  red: "\x1b[38;2;255;0;80m",
+  gold: ColorSystem.rgb(255, 215, 0),
+  orange: ColorSystem.rgb(255, 165, 0),
+  red: ColorSystem.rgb(255, 0, 80),
 
   // UI elements
-  dim: "\x1b[2m",
-  bright: "\x1b[1m",
-  reset: "\x1b[0m",
-
-  // Background gradients (for special effects)
-  bgDark: "\x1b[48;2;10;10;20m",
-  bgMid: "\x1b[48;2;20;20;40m",
+  dim: ColorSystem.codes.dim,
+  bright: ColorSystem.codes.bright,
+  reset: ColorSystem.codes.reset,
 };
 
 // =============================================================================
@@ -82,10 +79,12 @@ export class GenesisRepl {
   private commandCount = 0;
   private logger: ILogger;
   private rootDirectory: string;
+  private startTime: number;
 
   constructor(logger: ILogger = defaultLogger) {
     this.logger = logger;
     this.rootDirectory = Deno.cwd(); // Lock to directory where REPL was started
+    this.startTime = Date.now();
     this.registerCommands();
   }
 
@@ -422,31 +421,57 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
   private showStatus(): void {
     const cwd = Deno.cwd();
     const timestamp = new Date().toISOString();
+    const uptime = Date.now() - this.startTime;
+    const uptimeStr = this.formatUptime(uptime);
 
-    console.log(
-      `\n${colors.neonCyan}╭─── ${colors.bright}GENESIS STATUS${colors.reset}${colors.neonCyan} ───╮${colors.reset}\n`,
+    console.log();
+    BoxRenderer.render(
+      [
+        `${ColorSystem.colorize("📊 GENESIS STATUS", colors.neonPink)}`,
+        "",
+        `${ColorSystem.colorize("Directory:", colors.neonGreen)}  ${ColorSystem.colorize(cwd, colors.dim)}`,
+        `${ColorSystem.colorize("Commands:", colors.neonGreen)}   ${ColorSystem.colorize(String(this.commandCount), colors.electricBlue)}`,
+        `${ColorSystem.colorize("Uptime:", colors.neonGreen)}     ${ColorSystem.colorize(uptimeStr, colors.dim)}`,
+        `${ColorSystem.colorize("Timestamp:", colors.neonGreen)}  ${ColorSystem.colorize(timestamp, colors.dim)}`,
+      ],
+      { style: "rounded", color: colors.neonCyan, padding: 1 }
     );
-    console.log(
-      `  ${colors.neonGreen}Working Directory:${colors.reset}  ${colors.dim}${cwd}${colors.reset}`,
-    );
-    console.log(
-      `  ${colors.neonGreen}Commands Executed:${colors.reset}  ${colors.dim}${this.commandCount}${colors.reset}`,
-    );
-    console.log(
-      `  ${colors.neonGreen}Timestamp:${colors.reset}         ${colors.dim}${timestamp}${colors.reset}`,
-    );
-    console.log(`\n${colors.neonCyan}╰${"─".repeat(60)}╯${colors.reset}\n`);
+    console.log();
+  }
+
+  /**
+   * Format uptime in human-readable form
+   */
+  private formatUptime(ms: number): string {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+
+    if (hours > 0) {
+      return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds % 60}s`;
+    } else {
+      return `${seconds}s`;
+    }
   }
 
   /**
    * Display version information
    */
   private showVersion(): void {
-    console.log(
-      `\n${colors.neonPink}${colors.bright}Deno Genesis Meta Operating System${colors.reset}`,
+    console.log();
+    BoxRenderer.render(
+      [
+        `${ColorSystem.colorize("🚀 Deno Genesis Meta Operating System", colors.neonPink)}${colors.bright}${colors.reset}`,
+        "",
+        `${ColorSystem.colorize("Version:", colors.dim)}   1.0.0`,
+        `${ColorSystem.colorize("Build:", colors.dim)}     2025-01-03`,
+        `${ColorSystem.colorize("Runtime:", colors.dim)}   Deno ${Deno.version.deno}`,
+      ],
+      { style: "double", color: colors.neonCyan, padding: 1, align: "center" }
     );
-    console.log(`${colors.dim}Version: 1.0.0${colors.reset}`);
-    console.log(`${colors.dim}Build: 2025-01-03${colors.reset}\n`);
+    console.log();
   }
 
   /**
@@ -485,7 +510,7 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
         // No argument - go to root directory (not home)
         Deno.chdir(this.rootDirectory);
         console.log(
-          `${colors.neonCyan}[${colors.bright}DIRECTORY${colors.reset}${colors.neonCyan}]${colors.reset} ${colors.dim}${this.rootDirectory}${colors.reset}`
+          `\n${colors.neonCyan}📂 ${colors.bright}DIRECTORY${colors.reset} ${colors.dim}→${colors.reset} ${ColorSystem.colorize(this.rootDirectory, colors.neonGreen)}\n`
         );
         return;
       }
@@ -500,29 +525,41 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
       if (!resolvedPath.startsWith(this.rootDirectory)) {
         // Revert to previous directory
         Deno.chdir(currentDir);
-        console.log(
-          `\n${colors.red}${colors.bright}[ACCESS DENIED]${colors.reset}`
+        console.log();
+        BoxRenderer.render(
+          [
+            `${ColorSystem.colorize("🔒 ACCESS DENIED", colors.red)}${colors.bright}${colors.reset}`,
+            "",
+            `Cannot navigate above root directory:`,
+            `${ColorSystem.colorize(this.rootDirectory, colors.neonCyan)}`,
+            "",
+            `Requested path would resolve to:`,
+            `${ColorSystem.colorize(resolvedPath, colors.red)}`,
+          ],
+          { style: "rounded", color: colors.red, padding: 1 }
         );
-        console.log(
-          `${colors.dim}Cannot navigate above root directory: ${colors.neonCyan}${this.rootDirectory}${colors.reset}`
-        );
-        console.log(
-          `${colors.dim}Requested path would resolve to: ${colors.red}${resolvedPath}${colors.reset}\n`
-        );
+        console.log();
         return;
       }
 
       // Path is valid - display success message
       console.log(
-        `${colors.neonCyan}[${colors.bright}DIRECTORY${colors.reset}${colors.neonCyan}]${colors.reset} ${colors.dim}${resolvedPath}${colors.reset}`
+        `\n${colors.neonCyan}📂 ${colors.bright}DIRECTORY${colors.reset} ${colors.dim}→${colors.reset} ${ColorSystem.colorize(resolvedPath, colors.neonGreen)}\n`
       );
     } catch (error) {
       const errorMessage = error instanceof Error
         ? error.message
         : String(error);
-      console.log(
-        `\n${colors.red}${colors.bright}[ERROR]${colors.reset} ${colors.dim}cd: ${errorMessage}${colors.reset}\n`
+      console.log();
+      BoxRenderer.render(
+        [
+          `${ColorSystem.colorize("⚠️  ERROR", colors.red)}`,
+          "",
+          `cd: ${errorMessage}`,
+        ],
+        { style: "rounded", color: colors.red, padding: 1 }
       );
+      console.log();
     }
   }
 
@@ -836,61 +873,71 @@ ${colors.dim}For more information, type 'help' to see all available commands.${c
     args: string[],
   ): Promise<void> {
     try {
-      // Map of common Unix commands to their display categories
-      const commandCategories: Record<string, string> = {
-        ls: "FILE SYSTEM",
-        pwd: "DIRECTORY",
-        cd: "DIRECTORY",
-        mkdir: "FILE SYSTEM",
-        rm: "FILE SYSTEM",
-        cp: "FILE SYSTEM",
-        mv: "FILE SYSTEM",
-        cat: "FILE VIEWER",
-        grep: "SEARCH",
-        find: "SEARCH",
-        git: "VERSION CONTROL",
-        npm: "PACKAGE MANAGER",
-        curl: "NETWORK",
-        wget: "NETWORK",
-        touch: "FILE SYSTEM",
-        chmod: "PERMISSIONS",
-        chown: "PERMISSIONS",
-        ps: "PROCESS",
-        kill: "PROCESS",
-        top: "PROCESS",
-        echo: "OUTPUT",
-        tree: "FILE SYSTEM",
-        which: "SYSTEM",
-        whoami: "SYSTEM",
-        date: "SYSTEM",
-        uname: "SYSTEM",
+      // Map of common Unix commands to their display categories and icons
+      const commandInfo: Record<string, { category: string; icon: string }> = {
+        ls: { category: "FILE SYSTEM", icon: "📁" },
+        pwd: { category: "DIRECTORY", icon: "📍" },
+        cd: { category: "DIRECTORY", icon: "📂" },
+        mkdir: { category: "FILE SYSTEM", icon: "➕" },
+        rm: { category: "FILE SYSTEM", icon: "🗑️" },
+        cp: { category: "FILE SYSTEM", icon: "📋" },
+        mv: { category: "FILE SYSTEM", icon: "➡️" },
+        cat: { category: "FILE VIEWER", icon: "👁️" },
+        grep: { category: "SEARCH", icon: "🔍" },
+        find: { category: "SEARCH", icon: "🔎" },
+        git: { category: "VERSION CONTROL", icon: "🌿" },
+        npm: { category: "PACKAGE MANAGER", icon: "📦" },
+        curl: { category: "NETWORK", icon: "🌐" },
+        wget: { category: "NETWORK", icon: "⬇️" },
+        touch: { category: "FILE SYSTEM", icon: "✨" },
+        chmod: { category: "PERMISSIONS", icon: "🔐" },
+        chown: { category: "PERMISSIONS", icon: "👤" },
+        ps: { category: "PROCESS", icon: "⚙️" },
+        kill: { category: "PROCESS", icon: "⛔" },
+        top: { category: "PROCESS", icon: "📊" },
+        echo: { category: "OUTPUT", icon: "💬" },
+        tree: { category: "FILE SYSTEM", icon: "🌳" },
+        which: { category: "SYSTEM", icon: "🔧" },
+        whoami: { category: "SYSTEM", icon: "👋" },
+        date: { category: "SYSTEM", icon: "📅" },
+        uname: { category: "SYSTEM", icon: "💻" },
       };
 
-      const category = commandCategories[cmd] || "SHELL";
+      const info = commandInfo[cmd] || { category: "SHELL", icon: "▸" };
       const fullCommand = args.length > 0 ? `${cmd} ${args.join(" ")}` : cmd;
 
-      // Show futuristic shell execution indicator
-      console.log(
-        `\n${colors.neonCyan}╭─[${colors.bright}${category}${colors.reset}${colors.neonCyan}]${"─".repeat(Math.max(60 - category.length, 10))}╮${colors.reset}`
-      );
-      console.log(
-        `${colors.neonCyan}│${colors.reset} ${colors.neonPink}▸${colors.reset} ${colors.electricBlue}${fullCommand}${colors.reset}`
-      );
-      console.log(
-        `${colors.neonCyan}╰${"─".repeat(62)}╯${colors.reset}\n`
-      );
+      // Show enhanced shell execution header using BoxRenderer
+      const headerContent = [
+        `${ColorSystem.colorize(info.icon + " " + info.category, colors.neonPink)} ${colors.dim}│${colors.reset} ${ColorSystem.colorize(fullCommand, colors.electricBlue)}`
+      ];
+
+      console.log(); // Spacing before
+
+      // Custom box for command header
+      const boxWidth = Math.max(70, ColorSystem.visibleLength(fullCommand) + info.category.length + 10);
+      const topBorder = `${colors.neonCyan}╭─┤ ${colors.bright}${info.category}${colors.reset}${colors.neonCyan} ├${"─".repeat(Math.max(boxWidth - info.category.length - 7, 5))}╮${colors.reset}`;
+      const contentLine = `${colors.neonCyan}│${colors.reset} ${colors.neonPink}▸${colors.reset} ${ColorSystem.colorize(fullCommand, colors.electricBlue)} ${" ".repeat(Math.max(boxWidth - ColorSystem.visibleLength(fullCommand) - 3, 0))}${colors.neonCyan}│${colors.reset}`;
+      const bottomBorder = `${colors.neonCyan}╰${"─".repeat(boxWidth)}╯${colors.reset}`;
+
+      console.log(topBorder);
+      console.log(contentLine);
+      console.log(bottomBorder);
+      console.log(); // Spacing after header
 
       // Run the command with inherited stdio for direct output
       const result = await CommandRunner.run(cmd, args, { inherit: true });
 
-      // Show stylized exit status
+      // Show enhanced status indicator
+      console.log(); // Spacing before status
       if (result.success) {
+        const statusMsg = `✓ Command completed successfully`;
         console.log(
-          `\n${colors.dim}${colors.neonGreen}[✓] Command completed successfully${colors.reset}`
+          `${colors.dim}${colors.neonCyan}└─▸${colors.reset} ${ColorSystem.colorize(statusMsg, colors.neonGreen)}`
         );
       } else {
+        const statusMsg = `✗ Exit code: ${result.code}`;
         console.log(
-          `\n${colors.red}${colors.bright}[✗] Exit code: ${result.code}${colors.reset}`
+          `${colors.dim}${colors.neonCyan}└─▸${colors.reset} ${ColorSystem.colorize(statusMsg, colors.red)}${colors.bright}${colors.reset}`
         );
       }
       console.log(); // Extra spacing
@@ -904,28 +951,28 @@ ${colors.dim}For more information, type 'help' to see all available commands.${c
         errorMessage.includes("No such file or directory") ||
         errorMessage.includes("entity not found")
       ) {
-        console.log(
-          `\n${colors.red}${colors.bright}╭─[COMMAND NOT FOUND]${"─".repeat(42)}╮${colors.reset}`
+        console.log();
+        BoxRenderer.render(
+          [
+            `${ColorSystem.colorize("⚠️  COMMAND NOT FOUND", colors.red)}`,
+            "",
+            `Unknown command: ${ColorSystem.colorize(cmd, colors.electricBlue)}`,
+            `Type ${ColorSystem.colorize("'help'", colors.neonGreen)} for available Genesis commands`,
+          ],
+          { style: "rounded", color: colors.red, padding: 1 }
         );
-        console.log(
-          `${colors.red}${colors.bright}│${colors.reset} ${colors.dim}Unknown command: ${colors.reset}${colors.electricBlue}${cmd}${colors.reset}`
-        );
-        console.log(
-          `${colors.red}${colors.bright}│${colors.reset} ${colors.dim}Type ${colors.neonGreen}'help'${colors.reset}${colors.dim} for Genesis commands${colors.reset}`
-        );
-        console.log(
-          `${colors.red}${colors.bright}╰${"─".repeat(62)}╯${colors.reset}\n`
-        );
+        console.log();
       } else {
-        console.log(
-          `\n${colors.red}${colors.bright}╭─[EXECUTION ERROR]${"─".repeat(44)}╮${colors.reset}`
+        console.log();
+        BoxRenderer.render(
+          [
+            `${ColorSystem.colorize("💥 EXECUTION ERROR", colors.red)}`,
+            "",
+            errorMessage,
+          ],
+          { style: "rounded", color: colors.red, padding: 1 }
         );
-        console.log(
-          `${colors.red}${colors.bright}│${colors.reset} ${colors.dim}${errorMessage}${colors.reset}`
-        );
-        console.log(
-          `${colors.red}${colors.bright}╰${"─".repeat(62)}╯${colors.reset}\n`
-        );
+        console.log();
       }
     }
   }
@@ -942,14 +989,21 @@ ${colors.dim}For more information, type 'help' to see all available commands.${c
    * Exit the REPL
    */
   private exit(): void {
-    console.log(`\n${colors.neonCyan}╭${"─".repeat(60)}╮${colors.reset}`);
-    console.log(
-      `${colors.neonCyan}│${colors.reset}  ${colors.neonPink}Exiting Genesis REPL...${colors.reset}`,
+    const totalUptime = this.formatUptime(Date.now() - this.startTime);
+
+    console.log();
+    BoxRenderer.render(
+      [
+        `${ColorSystem.colorize("👋 Exiting Genesis REPL", colors.neonPink)}`,
+        "",
+        `${ColorSystem.colorize(`Commands executed: ${this.commandCount}`, colors.dim)}`,
+        `${ColorSystem.colorize(`Session uptime: ${totalUptime}`, colors.dim)}`,
+        "",
+        `${ColorSystem.colorize("May your code be elegant and your deploys swift.", colors.neonCyan)}${colors.dim}${colors.reset}`,
+      ],
+      { style: "rounded", color: colors.neonCyan, padding: 1, align: "center" }
     );
-    console.log(
-      `${colors.neonCyan}│${colors.reset}  ${colors.dim}May your code be elegant and your deploys swift.${colors.reset}`,
-    );
-    console.log(`${colors.neonCyan}╰${"─".repeat(60)}╯${colors.reset}\n`);
+    console.log();
     this.running = false;
   }
 

@@ -124,12 +124,10 @@ export async function dbCommand(
 
     BannerRenderer.render({
       title: "Database Configuration",
-      content: `📊 Database: ${dbConfig.name}
-👤 User: ${dbConfig.user}
-🔌 Connection: ${
+      description: `📊 ${dbConfig.name} | 👤 ${dbConfig.user} | 🔌 ${
         dbConfig.useSocket
-          ? `Unix Socket (${dbConfig.socket})`
-          : `TCP (${dbConfig.host})`
+          ? `Unix Socket`
+          : `TCP`
       }`,
       style: "single",
       padding: 1,
