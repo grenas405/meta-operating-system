@@ -16,7 +16,7 @@
 
 import { ConsoleStyler } from "./core/utils/console-styler/mod.ts";
 import type { Kernel } from "./kernel.ts";
-import { manCommand } from "./core/utils/man.ts";
+import { manCommand } from "./man.ts";
 
 // =============================================================================
 // CYBERPUNK COLOR PALETTE
@@ -120,21 +120,31 @@ export class MetaRepl {
           return;
         }
 
-        console.log(`\n${colors.neonCyan}${colors.bright}═══ MANAGED PROCESSES ═══${colors.reset}\n`);
         console.log(
-          `${colors.bright}${"ID".padEnd(20)}${"NAME".padEnd(20)}${"PID".padEnd(10)}${"STATUS".padEnd(12)}${"RESTARTS"}${colors.reset}`,
+          `\n${colors.neonCyan}${colors.bright}═══ MANAGED PROCESSES ═══${colors.reset}\n`,
+        );
+        console.log(
+          `${colors.bright}${"ID".padEnd(20)}${"NAME".padEnd(20)}${
+            "PID".padEnd(10)
+          }${"STATUS".padEnd(12)}${"RESTARTS"}${colors.reset}`,
         );
         console.log(`${colors.dim}${"─".repeat(80)}${colors.reset}`);
 
         for (const proc of processes) {
-          const statusColor =
-            proc.status === "running" ? colors.neonGreen :
-            proc.status === "failed" ? colors.red :
-            proc.status === "starting" ? colors.orange :
-            colors.gray;
+          const statusColor = proc.status === "running"
+            ? colors.neonGreen
+            : proc.status === "failed"
+            ? colors.red
+            : proc.status === "starting"
+            ? colors.orange
+            : colors.gray;
 
           console.log(
-            `${proc.id.padEnd(20)}${proc.name.padEnd(20)}${String(proc.pid || "N/A").padEnd(10)}${statusColor}${proc.status.padEnd(12)}${colors.reset}${String(proc.restartCount)}`,
+            `${proc.id.padEnd(20)}${proc.name.padEnd(20)}${
+              String(proc.pid || "N/A").padEnd(10)
+            }${statusColor}${proc.status.padEnd(12)}${colors.reset}${
+              String(proc.restartCount)
+            }`,
           );
         }
         console.log();
@@ -155,7 +165,9 @@ export class MetaRepl {
         const processId = args[0];
         try {
           await this.kernel.killProcess(processId);
-          console.log(`${colors.neonGreen}✓${colors.reset} Process ${colors.bright}${processId}${colors.reset} killed successfully`);
+          console.log(
+            `${colors.neonGreen}✓${colors.reset} Process ${colors.bright}${processId}${colors.reset} killed successfully`,
+          );
         } catch (error) {
           console.log(
             `${colors.red}✗ Failed to kill process:${colors.reset} ${
@@ -173,14 +185,18 @@ export class MetaRepl {
       usage: "restart <process-id>",
       handler: async (args) => {
         if (args.length === 0) {
-          console.log(`${colors.red}✗ Usage:${colors.reset} restart <process-id>`);
+          console.log(
+            `${colors.red}✗ Usage:${colors.reset} restart <process-id>`,
+          );
           return;
         }
 
         const processId = args[0];
         try {
           await this.kernel.killProcess(processId);
-          console.log(`${colors.neonGreen}✓${colors.reset} Process ${colors.bright}${processId}${colors.reset} will auto-restart...`);
+          console.log(
+            `${colors.neonGreen}✓${colors.reset} Process ${colors.bright}${processId}${colors.reset} will auto-restart...`,
+          );
         } catch (error) {
           console.log(
             `${colors.red}✗ Failed to restart process:${colors.reset} ${
@@ -199,30 +215,64 @@ export class MetaRepl {
       usage: "inspect <process-id>",
       handler: (args) => {
         if (args.length === 0) {
-          console.log(`${colors.red}✗ Usage:${colors.reset} inspect <process-id>`);
+          console.log(
+            `${colors.red}✗ Usage:${colors.reset} inspect <process-id>`,
+          );
           return;
         }
 
         const processId = args[0];
         const process = this.kernel.getProcessStatus(processId);
         if (!process) {
-          console.log(`${colors.red}✗ Process not found:${colors.reset} ${processId}`);
+          console.log(
+            `${colors.red}✗ Process not found:${colors.reset} ${processId}`,
+          );
           return;
         }
 
         const uptime = Math.floor((Date.now() - process.startTime) / 1000);
 
-        console.log(`\n${colors.neonCyan}╔═══════════════════════════════════════════════╗${colors.reset}`);
-        console.log(`${colors.neonCyan}║${colors.reset}    ${colors.bright}Process Inspection Report${colors.reset}             ${colors.neonCyan}║${colors.reset}`);
-        console.log(`${colors.neonCyan}╚═══════════════════════════════════════════════╝${colors.reset}\n`);
-        console.log(`${colors.neonPink}▸${colors.reset} ${colors.bright}ID:${colors.reset}           ${process.id}`);
-        console.log(`${colors.neonPink}▸${colors.reset} ${colors.bright}Name:${colors.reset}         ${process.name}`);
-        console.log(`${colors.neonPink}▸${colors.reset} ${colors.bright}PID:${colors.reset}          ${process.pid || "N/A"}`);
-        console.log(`${colors.neonPink}▸${colors.reset} ${colors.bright}Status:${colors.reset}       ${process.status}`);
-        console.log(`${colors.neonPink}▸${colors.reset} ${colors.bright}Auto-Restart:${colors.reset} ${process.autoRestart ? "Enabled" : "Disabled"}`);
-        console.log(`${colors.neonPink}▸${colors.reset} ${colors.bright}Restarts:${colors.reset}     ${process.restartCount}`);
-        console.log(`${colors.neonPink}▸${colors.reset} ${colors.bright}Started:${colors.reset}      ${new Date(process.startTime).toISOString()}`);
-        console.log(`${colors.neonPink}▸${colors.reset} ${colors.bright}Uptime:${colors.reset}       ${this.formatUptime(uptime)}\n`);
+        console.log(
+          `\n${colors.neonCyan}╔═══════════════════════════════════════════════╗${colors.reset}`,
+        );
+        console.log(
+          `${colors.neonCyan}║${colors.reset}    ${colors.bright}Process Inspection Report${colors.reset}             ${colors.neonCyan}║${colors.reset}`,
+        );
+        console.log(
+          `${colors.neonCyan}╚═══════════════════════════════════════════════╝${colors.reset}\n`,
+        );
+        console.log(
+          `${colors.neonPink}▸${colors.reset} ${colors.bright}ID:${colors.reset}           ${process.id}`,
+        );
+        console.log(
+          `${colors.neonPink}▸${colors.reset} ${colors.bright}Name:${colors.reset}         ${process.name}`,
+        );
+        console.log(
+          `${colors.neonPink}▸${colors.reset} ${colors.bright}PID:${colors.reset}          ${
+            process.pid || "N/A"
+          }`,
+        );
+        console.log(
+          `${colors.neonPink}▸${colors.reset} ${colors.bright}Status:${colors.reset}       ${process.status}`,
+        );
+        console.log(
+          `${colors.neonPink}▸${colors.reset} ${colors.bright}Auto-Restart:${colors.reset} ${
+            process.autoRestart ? "Enabled" : "Disabled"
+          }`,
+        );
+        console.log(
+          `${colors.neonPink}▸${colors.reset} ${colors.bright}Restarts:${colors.reset}     ${process.restartCount}`,
+        );
+        console.log(
+          `${colors.neonPink}▸${colors.reset} ${colors.bright}Started:${colors.reset}      ${
+            new Date(process.startTime).toISOString()
+          }`,
+        );
+        console.log(
+          `${colors.neonPink}▸${colors.reset} ${colors.bright}Uptime:${colors.reset}       ${
+            this.formatUptime(uptime)
+          }\n`,
+        );
       },
     });
 
@@ -240,16 +290,30 @@ export class MetaRepl {
         const processId = args[0];
         const process = this.kernel.getProcessStatus(processId);
         if (!process) {
-          console.log(`${colors.red}✗ Process not found:${colors.reset} ${processId}`);
+          console.log(
+            `${colors.red}✗ Process not found:${colors.reset} ${processId}`,
+          );
           return;
         }
 
-        console.log(`\n${colors.neonCyan}${colors.bright}═══ LOGS: ${process.name} ═══${colors.reset}\n`);
+        console.log(
+          `\n${colors.neonCyan}${colors.bright}═══ LOGS: ${process.name} ═══${colors.reset}\n`,
+        );
         console.log(`${colors.dim}Process ID:${colors.reset}   ${processId}`);
-        console.log(`${colors.dim}PID:${colors.reset}          ${process.pid || "N/A"}`);
-        console.log(`${colors.dim}Status:${colors.reset}       ${process.status}`);
-        console.log(`${colors.dim}Start Time:${colors.reset}   ${new Date(process.startTime).toISOString()}`);
-        console.log(`${colors.dim}Restarts:${colors.reset}     ${process.restartCount}\n`);
+        console.log(
+          `${colors.dim}PID:${colors.reset}          ${process.pid || "N/A"}`,
+        );
+        console.log(
+          `${colors.dim}Status:${colors.reset}       ${process.status}`,
+        );
+        console.log(
+          `${colors.dim}Start Time:${colors.reset}   ${
+            new Date(process.startTime).toISOString()
+          }`,
+        );
+        console.log(
+          `${colors.dim}Restarts:${colors.reset}     ${process.restartCount}\n`,
+        );
       },
     });
 
@@ -271,7 +335,9 @@ export class MetaRepl {
       handler: () => {
         this.showStatusBar = !this.showStatusBar;
         console.log(
-          `${colors.neonGreen}✓${colors.reset} Status bar ${this.showStatusBar ? "enabled" : "disabled"}`,
+          `${colors.neonGreen}✓${colors.reset} Status bar ${
+            this.showStatusBar ? "enabled" : "disabled"
+          }`,
         );
       },
     });
@@ -286,12 +352,28 @@ export class MetaRepl {
         const info = this.kernel.getSystemInfo();
         const uptime = this.kernel.getUptime();
 
-        console.log(`\n${colors.neonCyan}╭─── ${colors.bright}KERNEL SYSTEM INFO${colors.reset}${colors.neonCyan} ───╮${colors.reset}\n`);
-        console.log(`  ${colors.neonGreen}▸${colors.reset} ${colors.bright}Version:${colors.reset}    ${colors.dim}${info.version}${colors.reset}`);
-        console.log(`  ${colors.neonGreen}▸${colors.reset} ${colors.bright}PID:${colors.reset}        ${colors.dim}${info.pid}${colors.reset}`);
-        console.log(`  ${colors.neonGreen}▸${colors.reset} ${colors.bright}Platform:${colors.reset}   ${colors.dim}${info.platform}${colors.reset}`);
-        console.log(`  ${colors.neonGreen}▸${colors.reset} ${colors.bright}Uptime:${colors.reset}     ${colors.dim}${this.formatUptime(uptime)}${colors.reset}`);
-        console.log(`  ${colors.neonGreen}▸${colors.reset} ${colors.bright}Start Time:${colors.reset} ${colors.dim}${new Date(info.startTime).toISOString()}${colors.reset}`);
+        console.log(
+          `\n${colors.neonCyan}╭─── ${colors.bright}KERNEL SYSTEM INFO${colors.reset}${colors.neonCyan} ───╮${colors.reset}\n`,
+        );
+        console.log(
+          `  ${colors.neonGreen}▸${colors.reset} ${colors.bright}Version:${colors.reset}    ${colors.dim}${info.version}${colors.reset}`,
+        );
+        console.log(
+          `  ${colors.neonGreen}▸${colors.reset} ${colors.bright}PID:${colors.reset}        ${colors.dim}${info.pid}${colors.reset}`,
+        );
+        console.log(
+          `  ${colors.neonGreen}▸${colors.reset} ${colors.bright}Platform:${colors.reset}   ${colors.dim}${info.platform}${colors.reset}`,
+        );
+        console.log(
+          `  ${colors.neonGreen}▸${colors.reset} ${colors.bright}Uptime:${colors.reset}     ${colors.dim}${
+            this.formatUptime(uptime)
+          }${colors.reset}`,
+        );
+        console.log(
+          `  ${colors.neonGreen}▸${colors.reset} ${colors.bright}Start Time:${colors.reset} ${colors.dim}${
+            new Date(info.startTime).toISOString()
+          }${colors.reset}`,
+        );
         console.log(`\n${colors.neonCyan}╰${"─".repeat(50)}╯${colors.reset}\n`);
       },
     });
@@ -314,10 +396,18 @@ export class MetaRepl {
       handler: () => {
         const kernelPid = this.kernel.getSystemInfo().pid;
         console.log(`\n${colors.neonCyan}╭${"─".repeat(60)}╮${colors.reset}`);
-        console.log(`${colors.neonCyan}│${colors.reset}  ${colors.neonPink}Exiting REPL...${colors.reset}`);
-        console.log(`${colors.neonCyan}│${colors.reset}  ${colors.dim}Kernel continues running (PID: ${kernelPid})${colors.reset}`);
-        console.log(`${colors.neonCyan}│${colors.reset}  ${colors.dim}To re-enter: Send signal to kernel PID${colors.reset}`);
-        console.log(`${colors.neonCyan}│${colors.reset}  ${colors.dim}To stop kernel: Press CTRL+C${colors.reset}`);
+        console.log(
+          `${colors.neonCyan}│${colors.reset}  ${colors.neonPink}Exiting REPL...${colors.reset}`,
+        );
+        console.log(
+          `${colors.neonCyan}│${colors.reset}  ${colors.dim}Kernel continues running (PID: ${kernelPid})${colors.reset}`,
+        );
+        console.log(
+          `${colors.neonCyan}│${colors.reset}  ${colors.dim}To re-enter: Send signal to kernel PID${colors.reset}`,
+        );
+        console.log(
+          `${colors.neonCyan}│${colors.reset}  ${colors.dim}To stop kernel: Press CTRL+C${colors.reset}`,
+        );
         console.log(`${colors.neonCyan}╰${"─".repeat(60)}╯${colors.reset}\n`);
         this.running = false;
       },
@@ -343,10 +433,14 @@ export class MetaRepl {
           return;
         }
 
-        console.log(`\n${colors.neonCyan}${colors.bright}═══ COMMAND HISTORY ═══${colors.reset}\n`);
+        console.log(
+          `\n${colors.neonCyan}${colors.bright}═══ COMMAND HISTORY ═══${colors.reset}\n`,
+        );
         this.history.forEach((cmd, index) => {
           console.log(
-            `  ${colors.dim}${String(index + 1).padStart(3)}${colors.reset} ${colors.neonGreen}▸${colors.reset} ${cmd}`,
+            `  ${colors.dim}${
+              String(index + 1).padStart(3)
+            }${colors.reset} ${colors.neonGreen}▸${colors.reset} ${cmd}`,
           );
         });
         console.log();
@@ -373,12 +467,16 @@ export class MetaRepl {
       handler: (args) => {
         const code = args.join(" ");
         if (!code) {
-          console.log(`${colors.red}✗ Usage:${colors.reset} eval <javascript-code>`);
+          console.log(
+            `${colors.red}✗ Usage:${colors.reset} eval <javascript-code>`,
+          );
           return;
         }
 
         try {
-          const result = eval(`(function(kernel) { return ${code}; })`)(this.kernel);
+          const result = eval(`(function(kernel) { return ${code}; })`)(
+            this.kernel,
+          );
           console.log(`${colors.neonGreen}✓ Result:${colors.reset}`);
           console.log(result);
         } catch (error) {
@@ -466,7 +564,9 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
    * Display help with categorized commands
    */
   private showHelp(): void {
-    console.log(`\n${colors.neonCyan}${colors.bright}═══ META-OS COMMANDS ═══${colors.reset}\n`);
+    console.log(
+      `\n${colors.neonCyan}${colors.bright}═══ META-OS COMMANDS ═══${colors.reset}\n`,
+    );
 
     const categories = {
       process: "Process Management",
@@ -500,14 +600,18 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
       const cmds = commandsByCategory[category];
       if (cmds.length === 0) continue;
 
-      console.log(`${colors.neonPink}▸ ${colors.bright}${title}${colors.reset}\n`);
+      console.log(
+        `${colors.neonPink}▸ ${colors.bright}${title}${colors.reset}\n`,
+      );
 
       for (const cmd of cmds) {
         const aliases = cmd.aliases
           ? ` ${colors.dim}(${cmd.aliases.join(", ")})${colors.reset}`
           : "";
         console.log(
-          `  ${colors.neonGreen}${cmd.name.padEnd(12)}${colors.reset}${aliases} ${colors.dim}│${colors.reset} ${cmd.description}`,
+          `  ${colors.neonGreen}${
+            cmd.name.padEnd(12)
+          }${colors.reset}${aliases} ${colors.dim}│${colors.reset} ${cmd.description}`,
         );
         if (cmd.usage) {
           console.log(`    ${colors.dim}Usage: ${cmd.usage}${colors.reset}`);
@@ -516,7 +620,9 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
       console.log();
     }
 
-    console.log(`${colors.dim}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}\n`);
+    console.log(
+      `${colors.dim}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}\n`,
+    );
   }
 
   // =============================================================================
@@ -544,19 +650,28 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
       let output = "\x1b[2J\x1b[H";
 
       // Header
-      output += `${colors.bgBlue}${colors.bright} META-OS PROCESS MONITOR ${colors.reset} `;
-      output += `${colors.neonCyan}Updated: ${new Date().toLocaleTimeString()}${colors.reset}`;
+      output +=
+        `${colors.bgBlue}${colors.bright} META-OS PROCESS MONITOR ${colors.reset} `;
+      output += `${colors.neonCyan}Updated: ${
+        new Date().toLocaleTimeString()
+      }${colors.reset}`;
       output += `  ${colors.dim}Press 'q' to exit${colors.reset}\n\n`;
 
       // System stats
       output += `${colors.bright}System Information:${colors.reset}\n`;
-      output += `  Uptime:      ${colors.neonCyan}${this.formatUptime(uptime)}${colors.reset}\n`;
-      output += `  PID:         ${colors.neonCyan}${sysInfo.pid}${colors.reset}\n`;
-      output += `  Platform:    ${colors.neonCyan}${sysInfo.platform}${colors.reset}\n`;
-      output += `  Version:     ${colors.neonCyan}${sysInfo.version}${colors.reset}\n\n`;
+      output += `  Uptime:      ${colors.neonCyan}${
+        this.formatUptime(uptime)
+      }${colors.reset}\n`;
+      output +=
+        `  PID:         ${colors.neonCyan}${sysInfo.pid}${colors.reset}\n`;
+      output +=
+        `  Platform:    ${colors.neonCyan}${sysInfo.platform}${colors.reset}\n`;
+      output +=
+        `  Version:     ${colors.neonCyan}${sysInfo.version}${colors.reset}\n\n`;
 
       // Process table
-      output += `${colors.bright}Managed Processes (${processes.length}):${colors.reset}\n`;
+      output +=
+        `${colors.bright}Managed Processes (${processes.length}):${colors.reset}\n`;
       output += `${colors.dim}${"─".repeat(100)}${colors.reset}\n`;
       output += `${colors.bright}`;
       output += "ID".padEnd(22);
@@ -659,12 +774,20 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
       try {
         await command.handler(args, this.kernel);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(`\n${colors.red}✗ Error:${colors.reset} ${errorMessage}\n`);
+        const errorMessage = error instanceof Error
+          ? error.message
+          : String(error);
+        console.error(
+          `\n${colors.red}✗ Error:${colors.reset} ${errorMessage}\n`,
+        );
       }
     } else {
-      console.log(`\n${colors.red}✗ Unknown command:${colors.reset} ${commandName}`);
-      console.log(`${colors.dim}Type 'help' for available commands${colors.reset}\n`);
+      console.log(
+        `\n${colors.red}✗ Unknown command:${colors.reset} ${commandName}`,
+      );
+      console.log(
+        `${colors.dim}Type 'help' for available commands${colors.reset}\n`,
+      );
     }
   }
 
@@ -778,7 +901,9 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
       .join(`${colors.dim} | ${colors.reset}`);
 
     if (suggestions.length > maxSuggestions) {
-      output += ` ${colors.dim}+${suggestions.length - maxSuggestions} more${colors.reset}`;
+      output += ` ${colors.dim}+${
+        suggestions.length - maxSuggestions
+      } more${colors.reset}`;
     }
 
     return output;
@@ -787,7 +912,10 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
   /**
    * Handle keyboard input with special keys
    */
-  private async handleKeyPress(key: Uint8Array, encoder: TextEncoder): Promise<boolean> {
+  private async handleKeyPress(
+    key: Uint8Array,
+    encoder: TextEncoder,
+  ): Promise<boolean> {
     const byte = key[0];
 
     // Handle escape sequences (arrow keys, etc.)
@@ -910,8 +1038,8 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
       this.inputState.cursor = this.inputState.buffer.length;
     } else if (suggestions.length > 1) {
       // Cycle through suggestions
-      this.inputState.suggestionIndex =
-        (this.inputState.suggestionIndex + 1) % suggestions.length;
+      this.inputState.suggestionIndex = (this.inputState.suggestionIndex + 1) %
+        suggestions.length;
       this.inputState.buffer = suggestions[this.inputState.suggestionIndex];
       this.inputState.cursor = this.inputState.buffer.length;
     }
@@ -943,8 +1071,8 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
     }
 
     // Position cursor
-    const cursorPos =
-      prompt.length - this.countAnsiChars(prompt) + this.inputState.cursor;
+    const cursorPos = prompt.length - this.countAnsiChars(prompt) +
+      this.inputState.cursor;
     output += `\x1b[${cursorPos + 1}G`;
 
     return output;
