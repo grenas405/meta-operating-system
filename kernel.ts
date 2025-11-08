@@ -9,12 +9,12 @@ import type { ILogger } from "./core/interfaces/mod.ts";
 import { defaultLogger } from "./core/adapters/mod.ts";
 
 import {
+  env,
   type KernelConfig,
   type ManagedProcess,
   type SystemInfo,
-} from "./interfaces/kernel.d.ts";
+} from "./mod.ts";
 
-import { env } from "./mod.ts";
 import { MetaRepl } from "./repl.ts";
 import {
   generateVersionFileFromGit,
