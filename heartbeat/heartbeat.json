@@ -15937,5 +15937,212 @@
     "boot_time": 1762522868,
     "cpu_spike_detected": false,
     "memory_leak_suspected": false
+  },
+  {
+    "timestamp": 1762631942,
+    "os_info": {
+      "name": "Ubuntu",
+      "kernel_version": "6.8.0-87-generic",
+      "os_version": "24.04",
+      "long_os_version": "Linux (Ubuntu 24.04)",
+      "hostname": "pxd-dev",
+      "distribution_id": "ubuntu"
+    },
+    "cpu_usage_percent": 1.0135134,
+    "cpu_cores": [
+      {
+        "core_id": 0,
+        "usage_percent": 1.0204082
+      },
+      {
+        "core_id": 1,
+        "usage_percent": 1.010101
+      },
+      {
+        "core_id": 2,
+        "usage_percent": 1.010101
+      },
+      {
+        "core_id": 3,
+        "usage_percent": 1.010101
+      },
+      {
+        "core_id": 4,
+        "usage_percent": 0
+      },
+      {
+        "core_id": 5,
+        "usage_percent": 1
+      }
+    ],
+    "cpu_info": {
+      "brand": "Intel(R) Core(TM) i7-10710U CPU @ 1.10GHz",
+      "vendor_id": "GenuineIntel",
+      "frequency_mhz": 1608,
+      "physical_core_count": 6
+    },
+    "memory_total_mb": 10177,
+    "memory_used_mb": 868,
+    "memory_free_mb": 3674,
+    "memory_available_mb": 9309,
+    "memory_usage_percent": 8.529036,
+    "swap_total_mb": 4089,
+    "swap_used_mb": 0,
+    "disks": [
+      {
+        "name": "/dev/mapper/ubuntu--vg-ubuntu--lv",
+        "mount_point": "/",
+        "total_space_gb": 48.38720703125,
+        "available_space_gb": 5.096302032470703,
+        "used_space_gb": 43.2909049987793,
+        "usage_percent": 89.46767,
+        "is_removable": false,
+        "disk_kind": "HDD",
+        "file_system": "ext4"
+      },
+      {
+        "name": "/dev/sda2",
+        "mount_point": "/boot",
+        "total_space_gb": 1.9002456665039062,
+        "available_space_gb": 1.592071533203125,
+        "used_space_gb": 0.30817413330078125,
+        "usage_percent": 16.217594,
+        "is_removable": false,
+        "disk_kind": "HDD",
+        "file_system": "ext4"
+      },
+      {
+        "name": "/dev/sda1",
+        "mount_point": "/boot/efi",
+        "total_space_gb": 1.0477333068847656,
+        "available_space_gb": 1.0417366027832031,
+        "used_space_gb": 0.0059967041015625,
+        "usage_percent": 0.57235026,
+        "is_removable": false,
+        "disk_kind": "HDD",
+        "file_system": "vfat"
+      }
+    ],
+    "network_interfaces": [
+      {
+        "interface_name": "enp0s3",
+        "bytes_received": 829924155,
+        "bytes_transmitted": 92029205,
+        "packets_received": 738544,
+        "packets_transmitted": 381741,
+        "errors_received": 0,
+        "errors_transmitted": 0
+      },
+      {
+        "interface_name": "enp0s8",
+        "bytes_received": 78977695,
+        "bytes_transmitted": 467059026,
+        "packets_received": 934281,
+        "packets_transmitted": 1109725,
+        "errors_received": 0,
+        "errors_transmitted": 0
+      },
+      {
+        "interface_name": "lo",
+        "bytes_received": 1166404,
+        "bytes_transmitted": 1166404,
+        "packets_received": 14114,
+        "packets_transmitted": 14114,
+        "errors_received": 0,
+        "errors_transmitted": 0
+      }
+    ],
+    "process_count": 324,
+    "top_processes": [
+      {
+        "pid": 63116,
+        "name": "heartbeat",
+        "cpu_usage": 7.094595,
+        "memory_mb": 4,
+        "disk_read_bytes": 0,
+        "disk_write_bytes": 0
+      },
+      {
+        "pid": 63132,
+        "name": "heartbeat",
+        "cpu_usage": 1.0135136,
+        "memory_mb": 4,
+        "disk_read_bytes": 0,
+        "disk_write_bytes": 0
+      },
+      {
+        "pid": 49265,
+        "name": "kworker/4:2-events",
+        "cpu_usage": 1.0135136,
+        "memory_mb": 0,
+        "disk_read_bytes": 0,
+        "disk_write_bytes": 0
+      },
+      {
+        "pid": 63066,
+        "name": "V8 DefaultWorke",
+        "cpu_usage": 0,
+        "memory_mb": 78,
+        "disk_read_bytes": 0,
+        "disk_write_bytes": 0
+      },
+      {
+        "pid": 942,
+        "name": "systemd-timesyn",
+        "cpu_usage": 0,
+        "memory_mb": 7,
+        "disk_read_bytes": 0,
+        "disk_write_bytes": 0
+      },
+      {
+        "pid": 122,
+        "name": "kworker/R-crypt",
+        "cpu_usage": 0,
+        "memory_mb": 0,
+        "disk_read_bytes": 0,
+        "disk_write_bytes": 0
+      },
+      {
+        "pid": 71,
+        "name": "kworker/R-blkcg",
+        "cpu_usage": 0,
+        "memory_mb": 0,
+        "disk_read_bytes": 0,
+        "disk_write_bytes": 0
+      },
+      {
+        "pid": 60356,
+        "name": "kworker/u18:0-events_power_efficient",
+        "cpu_usage": 0,
+        "memory_mb": 0,
+        "disk_read_bytes": 0,
+        "disk_write_bytes": 0
+      },
+      {
+        "pid": 80,
+        "name": "kworker/R-devfr",
+        "cpu_usage": 0,
+        "memory_mb": 0,
+        "disk_read_bytes": 0,
+        "disk_write_bytes": 0
+      },
+      {
+        "pid": 1446,
+        "name": "ollama",
+        "cpu_usage": 0,
+        "memory_mb": 44,
+        "disk_read_bytes": 0,
+        "disk_write_bytes": 0
+      }
+    ],
+    "load_average": {
+      "one_minute": 0.07,
+      "five_minutes": 0.35,
+      "fifteen_minutes": 0.31
+    },
+    "uptime_seconds": 109074,
+    "boot_time": 1762522868,
+    "cpu_spike_detected": false,
+    "memory_leak_suspected": false
   }
 ]
