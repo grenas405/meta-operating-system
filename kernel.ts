@@ -7,29 +7,15 @@
 
 import type { ILogger } from "./core/interfaces/mod.ts";
 import { defaultLogger } from "./core/adapters/mod.ts";
-import { env, type KernelConfig } from "./core/config/mod.ts";
+
+import {
+  type KernelConfig,
+  type ManagedProcess,
+  type SystemInfo,
+} from "./interfaces/kernel.d.ts";
+
+import { env } from "./mod.ts";
 import { MetaRepl } from "./repl.ts";
-
-interface SystemInfo {
-  startTime: number;
-  version: string;
-  pid: number;
-  platform: string;
-}
-
-interface ManagedProcess {
-  id: string;
-  name: string;
-  command: Deno.Command;
-  child?: Deno.ChildProcess;
-  pid?: number;
-  startTime: number;
-  restartCount: number;
-  autoRestart: boolean;
-  status: "starting" | "running" | "stopped" | "failed";
-  readyResolver?: () => void;
-  readyPromise?: Promise<void>;
-}
 
 class Kernel {
   private config: KernelConfig;

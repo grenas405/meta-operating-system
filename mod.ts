@@ -6,7 +6,11 @@
 
 // Kernel
 export { Kernel } from "./kernel.ts";
-export type { KernelConfig, ManagedProcess, SystemInfo } from "./kernel.ts";
+export type {
+  KernelConfig,
+  ManagedProcess,
+  SystemInfo,
+} from "./interfaces/kernel.d.ts";
 
 // Server
 export { HTTPServer } from "./core/server.ts";
@@ -79,7 +83,11 @@ export {
   ValidationError,
   validator,
 } from "./core/middleware/validation.ts";
-export type { Schema, ValidationRule, ValidationSchema } from "./core/middleware/validation.ts";
+export type {
+  Schema,
+  ValidationRule,
+  ValidationSchema,
+} from "./core/middleware/validation.ts";
 
 // Error Handling
 export {
