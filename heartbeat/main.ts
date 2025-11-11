@@ -1,8 +1,4 @@
-import {
-  BoxRenderer,
-  ColorSystem,
-  createConsoleLogger,
-} from "../core/utils/console-styler/mod.ts";
+import { BoxRenderer, ColorSystem } from "../core/utils/console-styler/mod.ts";
 import type { ILogger } from "../core/interfaces/ILogger.ts";
 import { LifelineAnimator } from "./utils/LifelineAnimator.ts";
 import { GENESIS_QUOTES } from "./constants/genesis-quotes.ts";
