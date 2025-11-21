@@ -16,8 +16,8 @@ import type { SystemMetrics } from "./types/SystemMetrics.ts";
 import type { ILogger } from "../core/interfaces/ILogger.ts";
 import {
   ConsoleStyler,
-  createConsoleLogger,
-} from "../core/utils/console-styler/mod.ts";
+  ConsoleStylerLogger,
+} from "@pedromdominguez/genesis-trace";
 
 interface HeartbeatServerConfig {
   port?: number;
@@ -40,7 +40,7 @@ export class HeartbeatServer {
       hostname: config.hostname ?? "127.0.0.1",
       logger: config.logger,
     };
-    this.logger = config.logger ?? createConsoleLogger();
+    this.logger = config.logger ?? new ConsoleStylerLogger();
     this.abortController = new AbortController();
   }
 

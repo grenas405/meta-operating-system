@@ -373,7 +373,10 @@ export interface SecurityConfig {
  * const handler = compose([security], () => new Response("ok"));
  * ```
  */
-export function createSecurityMiddleware(config: SecurityConfig) {
+export function createSecurityMiddleware(config: SecurityConfig): (
+  ctx: Context,
+  next: () => Promise<Response>,
+) => Promise<Response> {
   return async (
     ctx: Context,
     next: () => Promise<Response>,
@@ -1180,7 +1183,12 @@ export class SecurityMonitor {
    * });
    * ```
    */
-  static getSecurityStats() {
+  static getSecurityStats(): {
+    suspiciousIPs: number;
+    blockedIPs: number;
+    topSuspiciousIPs: Array<{ ip: string; incidents: number }>;
+    timestamp: string;
+  } {
     return {
       // Total number of IPs with suspicious activity
       suspiciousIPs: this.suspiciousActivity.size,
@@ -1343,7 +1351,11 @@ export class SecurityMonitor {
  * app.use(createSecurityMiddleware(config));
  * ```
  */
-export const SecurityPresets = {
+export const SecurityPresets: {
+  MAXIMUM_SECURITY: Omit<SecurityConfig, "environment">;
+  BALANCED: Omit<SecurityConfig, "environment">;
+  DEVELOPMENT: Omit<SecurityConfig, "environment">;
+} = {
   /**
    * Maximum security configuration
    *

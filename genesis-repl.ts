@@ -23,7 +23,7 @@ import { deployCommand } from "./cli/commands/deploy.ts";
 import type { ILogger } from "./core/interfaces/ILogger.ts";
 import { defaultLogger } from "./core/adapters/ConsoleStylerLogger.ts";
 import { CommandRunner } from "./commandRunner.ts";
-import { BoxRenderer, ColorSystem } from "./core/utils/console-styler/mod.ts";
+import { BoxRenderer, ColorSystem } from "@pedromdominguez/genesis-trace";
 
 // =============================================================================
 // CYBERPUNK COLOR PALETTE

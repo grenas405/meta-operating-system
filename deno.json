@@ -1,4 +1,37 @@
 {
+  "name": "@pedromdominguez/meta-os",
+  "version": "0.1.0",
+  "license": "MIT",
+  "exports": "./mod.ts",
+  "imports": {
+    "@pedromdominguez/genesis-trace": "jsr:@pedromdominguez/genesis-trace@^1.0.5"
+  },
+  "publish": {
+    "include": [
+      "mod.ts",
+      "kernel.ts",
+      "repl.ts",
+      "man.ts",
+      "core/**/*.ts",
+      "interfaces/**/*.ts",
+      "LICENSE",
+      "README.md"
+    ],
+    "exclude": [
+      "**/*_test.ts",
+      "**/test.ts",
+      "**/examples/**",
+      "**/*.test.ts",
+      "heartbeat/**",
+      "cli/**",
+      "*.d.ts",
+      "genesis-repl.ts",
+      "example.ts",
+      "commandRunner.ts",
+      "practice-kernel.ts",
+      "core/utils/console-styler/**"
+    ]
+  },
   "lsp": {
     "enable": true,
     "unstable": true,

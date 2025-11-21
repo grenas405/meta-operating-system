@@ -4,7 +4,7 @@
  * No external dependencies - uses only Deno built-in APIs
  */
 
-import { ConsoleStyler } from "../utils/console-styler/mod.ts";
+import { ConsoleStyler } from "@pedromdominguez/genesis-trace";
 
 export interface ResponseOptions {
   status?: number;

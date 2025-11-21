@@ -1,4 +1,4 @@
-import { ConsoleStyler } from "../../core/utils/console-styler/mod.ts";
+import { ConsoleStyler } from "@pedromdominguez/genesis-trace";
 
 /**
  * LifelineAnimator - Creates elegant ECG-style heartbeat animations

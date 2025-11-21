@@ -5,7 +5,7 @@
 // Allows ConsoleStyler to be used via dependency injection
 // ==============================================================================
 
-import { ConsoleStyler } from "../utils/console-styler/mod.ts";
+import { ConsoleStyler } from "@pedromdominguez/genesis-trace";
 import type { ILogger } from "../interfaces/ILogger.ts";
 
 /**

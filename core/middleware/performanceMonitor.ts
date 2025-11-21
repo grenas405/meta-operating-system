@@ -4,7 +4,7 @@
 // Real-time metrics, memory tracking, and request analysis for optimization
 // ================================================================================
 
-import { ConsoleStyler, ColorSystem } from "../utils/console-styler/mod.ts";
+import { ConsoleStyler, ColorSystem } from "@pedromdominguez/genesis-trace";
 import type { ILogger } from "../interfaces/ILogger.ts";
 //
 // UNIX PHILOSOPHY IMPLEMENTATION:
@@ -486,7 +486,31 @@ export class PerformanceMonitor {
    * console.log(`Avg Response: ${metrics.averageResponseTime}`);
    * ```
    */
-  getMetrics() {
+  getMetrics(): {
+    uptime: string;
+    uptimeMs: number;
+    requests: number;
+    errors: number;
+    successRate: string;
+    averageResponseTime: string;
+    slowRequests: number;
+    slowRequestRate: string;
+    memory: MemoryMetrics;
+    timestamp: string;
+    topEndpoints: Array<{
+      endpoint: string;
+      requests: number;
+      avgResponseTime: number;
+      errorRate: string;
+    }>;
+    recentActivity: Array<{
+      timestamp: string;
+      request: string;
+      duration: string;
+      status: number;
+      statusClass: string;
+    }>;
+  } {
     // Calculate uptime in milliseconds
     const uptime = Date.now() - this.startTime;
 
@@ -590,7 +614,30 @@ export class PerformanceMonitor {
    * console.log(`Deno version: ${detailed.systemInfo.deno.version}`);
    * ```
    */
-  getDetailedMetrics() {
+  getDetailedMetrics(): ReturnType<typeof this.getMetrics> & {
+    endpoints: Array<{
+      endpoint: string;
+      requests: number;
+      avgResponseTime: string;
+      errorRate: string;
+    }>;
+    systemInfo: {
+      deno: {
+        version: string;
+        v8: string;
+        typescript: string;
+      };
+      system: {
+        os: string;
+        arch: string;
+        pid: number;
+      };
+      runtime: {
+        startTime: string;
+        timezone: string;
+      };
+    };
+  } {
     return {
       // Include all basic metrics
       ...this.getMetrics(),
@@ -1064,7 +1111,10 @@ export class PerformanceMonitor {
    * }
    * ```
    */
-  getPerformanceInsights() {
+  getPerformanceInsights(): {
+    insights: PerformanceInsight[];
+    overallHealth: "excellent" | "good" | "poor";
+  } {
     // Get current metrics for analysis
     const metrics = this.getMetrics();
 
@@ -1275,7 +1325,7 @@ export function createPerformanceMiddleware(
   monitor: PerformanceMonitor,
   logger: ILogger,
   isDevelopment: boolean = false,
-) {
+): (ctx: any, next: () => Response | Promise<Response>) => Promise<Response> {
   // Return the actual middleware function
   // Compatible with custom Deno HTTP framework
   const middleware = async (ctx: any, next: () => Response | Promise<Response>): Promise<Response> => {
@@ -1471,7 +1521,31 @@ export class PerformanceAnalyzer {
    * });
    * ```
    */
-  static analyzeEndpointPerformance(monitor: PerformanceMonitor) {
+  static analyzeEndpointPerformance(monitor: PerformanceMonitor): {
+    slowestEndpoints: Array<{
+      endpoint: string;
+      requests: number;
+      avgResponseTime: string;
+      errorRate: string;
+    }>;
+    errorProneEndpoints: Array<{
+      endpoint: string;
+      requests: number;
+      avgResponseTime: string;
+      errorRate: string;
+    }>;
+    popularEndpoints: Array<{
+      endpoint: string;
+      requests: number;
+      avgResponseTime: string;
+      errorRate: string;
+    }>;
+    recommendations: Array<{
+      type: string;
+      message: string;
+      endpoints?: string[];
+    }>;
+  } {
     // Get detailed metrics with full endpoint breakdown
     const metrics = monitor.getDetailedMetrics();
 

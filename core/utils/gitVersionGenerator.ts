@@ -361,7 +361,7 @@ async function generateVersionFileFromGit(): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error(`❌ Failed to generate VERSION file: ${error.message}`);
+    console.error(`❌ Failed to generate VERSION file: ${error instanceof Error ? error.message : String(error)}`);
     return false;
   }
 }
@@ -405,7 +405,7 @@ async function generateVersionFileFromGitExtended(): Promise<boolean> {
     console.log("✅ Extended VERSION file generated");
     return true;
   } catch (error) {
-    console.error(`❌ Failed to generate VERSION file: ${error.message}`);
+    console.error(`❌ Failed to generate VERSION file: ${error instanceof Error ? error.message : String(error)}`);
     return false;
   }
 }

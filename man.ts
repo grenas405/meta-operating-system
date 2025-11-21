@@ -18,7 +18,7 @@
  * - The code and documentation converge into one truth
  */
 
-import { parse } from "https://deno.land/std@0.224.0/flags/mod.ts";
+import { parseArgs } from "jsr:@std/cli@1/parse-args";
 import {
   bold,
   brightRed,
@@ -26,8 +26,43 @@ import {
   italic,
   red,
   rgb24,
-} from "https://deno.land/std@0.224.0/fmt/colors.ts";
-import { readKeypress } from "https://deno.land/x/keypress@0.0.11/mod.ts";
+} from "jsr:@std/fmt@1/colors";
+
+// Simple native keypress reader (replaces external keypress module)
+async function* readKeypress(): AsyncGenerator<{ key?: string; char?: string }> {
+  const stdin = Deno.stdin;
+  const wasRaw = stdin.isTerminal();
+  if (wasRaw) {
+    stdin.setRaw(true);
+  }
+  try {
+    const buffer = new Uint8Array(8);
+    while (true) {
+      const n = await stdin.read(buffer);
+      if (n === null) break;
+      const bytes = buffer.subarray(0, n);
+      // Handle escape sequences
+      if (bytes[0] === 27 && bytes.length > 1) {
+        if (bytes[1] === 91) {
+          if (bytes[2] === 65) yield { key: "up" };
+          else if (bytes[2] === 66) yield { key: "down" };
+          else if (bytes[2] === 67) yield { key: "right" };
+          else if (bytes[2] === 68) yield { key: "left" };
+          else yield { key: "escape" };
+        } else {
+          yield { key: "escape" };
+        }
+      } else {
+        const char = new TextDecoder().decode(bytes);
+        yield { char, key: char };
+      }
+    }
+  } finally {
+    if (wasRaw) {
+      stdin.setRaw(false);
+    }
+  }
+}
 // =============================================================================
 // COLOR SCHEME: FUTURISTIC CYBERPUNK
 // =============================================================================
@@ -776,7 +811,7 @@ async function listAllCommands(): Promise<void> {
 // =============================================================================
 
 async function main(): Promise<void> {
-  const args = parse(Deno.args, {
+  const args = parseArgs(Deno.args, {
     boolean: ["help", "list", "version"],
     alias: { h: "help", l: "list", v: "version" },
   });

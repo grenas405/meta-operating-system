@@ -133,4 +133,4 @@ export class EnvironmentConfig {
 /**
  * Default environment config instance
  */
-export const env = new EnvironmentConfig();
+export const env: EnvironmentConfig = new EnvironmentConfig();

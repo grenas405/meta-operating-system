@@ -1,7 +1,7 @@
 // middleware/logging.ts → Advanced Logging System
 
 import type { Context } from "../utils/context.ts";
-import { ConsoleStyler, ColorSystem } from "../utils/console-styler/mod.ts";
+import { ConsoleStyler, ColorSystem } from "@pedromdominguez/genesis-trace";
 // ================================================================================
 // 📝 DenoGenesis Framework - Enterprise Request/Response Logging
 // Comprehensive logging with sanitization, performance tracking, and formatting
@@ -1044,7 +1044,12 @@ export class Logger {
    * @public
    * @returns {Object} Logging statistics
    */
-  getStats() {
+  getStats(): {
+    totalRequests: number;
+    logLevel: string;
+    requestLogging: boolean;
+    responseLogging: boolean;
+  } {
     return {
       totalRequests: this.requestCount,
       logLevel: this.config.logLevel,
@@ -1065,7 +1070,10 @@ export class Logger {
  * @param {LoggingConfig} config - Logging configuration
  * @returns {Function} Logging middleware function
  */
-export function createLoggingMiddleware(config: LoggingConfig) {
+export function createLoggingMiddleware(config: LoggingConfig): (
+  ctx: Context,
+  next: () => Promise<Response>,
+) => Promise<Response> {
   const logger = new Logger(config);
 
   // Log initialization in development mode
@@ -1166,7 +1174,7 @@ export class LoggingUtils {
    * @param {LoggingConfig} config - Logging configuration
    * @returns {Logger} Logger instance
    */
-  static createRequestLogger(config: LoggingConfig) {
+  static createRequestLogger(config: LoggingConfig): Logger {
     return new Logger(config);
   }
 

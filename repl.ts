@@ -14,7 +14,7 @@
  * - Self-documenting: The system explains itself
  */
 
-import { ConsoleStyler } from "./core/utils/console-styler/mod.ts";
+import { ConsoleStyler } from "@pedromdominguez/genesis-trace";
 import type { Kernel } from "./kernel.ts";
 import { manCommand } from "./man.ts";
 

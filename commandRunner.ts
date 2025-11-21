@@ -5,7 +5,7 @@
 // Wraps `Deno.Command` for safe, structured, and observable process execution.
 // ==============================================================================
 
-import { ConsoleStyler } from "../console-styler/mod.ts";
+import { ConsoleStyler } from "@pedromdominguez/genesis-trace";
 
 export interface CommandResult {
   success: boolean;

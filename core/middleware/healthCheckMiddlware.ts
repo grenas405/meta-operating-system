@@ -1,7 +1,7 @@
 // middleware/healthCheck.ts → System Health Monitoring
 
 import type { Context } from "../utils/context.ts";
-import { ConsoleStyler } from "../utils/console-styler/mod.ts";
+import { ConsoleStyler } from "@pedromdominguez/genesis-trace";
 // ================================================================================
 // 🔍 DenoGenesis Framework - Advanced Health Check Middleware
 // Comprehensive system monitoring, dependency checks, and status reporting
@@ -2239,7 +2239,21 @@ export class HealthMonitor {
    * @public
    * @returns {Object} Health statistics
    */
-  getHealthStats() {
+  getHealthStats(): {
+    totalChecks: number;
+    healthyChecks: number;
+    degradedChecks: number;
+    unhealthyChecks: number;
+    uptimePercentage: string;
+    recentAlerts: number;
+    alertsBySeverity: {
+      high: number;
+      medium: number;
+      low: number;
+    };
+    lastCheck: string | null;
+    healthTrend: "improving" | "stable" | "declining";
+  } {
     const totalChecks = this.healthHistory.length;
     const healthyChecks = this.healthHistory.filter(h => h.status === 'healthy').length;
     const degradedChecks = this.healthHistory.filter(h => h.status === 'degraded').length;
@@ -2307,7 +2321,11 @@ export class HealthMonitor {
    * @param {number} hours - Number of hours to look back
    * @returns {Array} Recent alerts
    */
-  getRecentAlerts(hours: number = 24) {
+  getRecentAlerts(hours: number = 24): Array<{
+    timestamp: string;
+    message: string;
+    severity: string;
+  }> {
     const cutoff = Date.now() - (hours * 60 * 60 * 1000);
     return this.alerts
       .filter(alert => alert.timestamp > cutoff)

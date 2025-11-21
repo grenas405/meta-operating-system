@@ -1,5 +1,13 @@
 {
   "version": "5",
+  "specifiers": {
+    "jsr:@pedromdominguez/genesis-trace@*": "1.0.5"
+  },
+  "jsr": {
+    "@pedromdominguez/genesis-trace@1.0.5": {
+      "integrity": "09dbce1531928377eada523a479094abd611db1542c2e495e9510c65f5dbf118"
+    }
+  },
   "remote": {
     "https://deno.land/std@0.200.0/_util/os.ts": "d932f56d41e4f6a6093d56044e29ce637f8dcc43c5a90af43504a889cf1775e3",
     "https://deno.land/std@0.200.0/assert/assert.ts": "9a97dad6d98c238938e7540736b826440ad8c1c1e54430ca4c4e623e585607ee",

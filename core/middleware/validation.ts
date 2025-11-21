@@ -5,7 +5,7 @@
  */
 
 import type { Context, Middleware } from "../utils/context.ts";
-import { ConsoleStyler } from "../utils/console-styler/mod.ts";
+import { ConsoleStyler } from "@pedromdominguez/genesis-trace";
 
 /**
  * Validation error with field-specific details

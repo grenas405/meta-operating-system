@@ -6,7 +6,7 @@
 // a secure secret automatically if missing, then persists it to .env.
 // ============================================================================
 import * as jose from "https://deno.land/x/jose@v5.2.0/index.ts";
-import { ConsoleStyler } from "./console-styler/mod.ts";
+import { ConsoleStyler } from "@pedromdominguez/genesis-trace";
 
 // ============================================================================
 // ============================================================================

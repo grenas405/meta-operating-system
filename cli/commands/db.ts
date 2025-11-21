@@ -37,7 +37,7 @@ import {
   BannerRenderer,
   BoxRenderer,
   Logger,
-} from "../../core/utils/console-styler/mod.ts";
+} from "@pedromdominguez/genesis-trace";
 
 // Types for better developer experience
 interface CLIContext {

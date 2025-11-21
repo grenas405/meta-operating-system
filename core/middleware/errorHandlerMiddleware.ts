@@ -5,7 +5,7 @@
 
 import type { Context } from "../utils/context.ts";
 import { finalizeResponse } from "../utils/context.ts";
-import { ConsoleStyler } from "../utils/console-styler/mod.ts";
+import { ConsoleStyler } from "@pedromdominguez/genesis-trace";
 // --------------------------------------------------------------------------------
 // TODO:
 // 1. Test examples in meta documentation
@@ -1123,7 +1123,19 @@ export class ErrorHandler {
    * });
    * ```
    */
-  static getErrorStats() {
+  static getErrorStats(): {
+    totalErrors: number;
+    recentErrors: number;
+    errorTypes: Record<string, number>;
+    topErrors: Array<{ type: string; count: number }>;
+    recentErrorSample: Array<{
+      error: string;
+      timestamp: number;
+      requestId?: string;
+      ip?: string;
+    }>;
+    timestamp: string;
+  } {
     // -------------------------------------------------------------------------
     // CALCULATE TOTAL ERRORS
     // -------------------------------------------------------------------------
@@ -1233,7 +1245,10 @@ export class ErrorHandler {
  * app.use(createErrorMiddleware(ErrorHandlerPresets.DEVELOPMENT));
  * ```
  */
-export function createErrorMiddleware(config: ErrorConfig) {
+export function createErrorMiddleware(config: ErrorConfig): (
+  ctx: Context,
+  next: () => Promise<Response>,
+) => Promise<Response> {
   // Return the actual middleware function
   return async (
     ctx: Context,
@@ -1774,7 +1789,21 @@ export class ErrorAnalytics {
    * @static
    * @returns {Object} Analysis results with insights and recommendations
    */
-  static analyzeErrorPatterns() {
+  static analyzeErrorPatterns(): {
+    stats: ReturnType<typeof ErrorHandler.getErrorStats>;
+    insights: Array<{
+      type: string;
+      severity: string;
+      message: string;
+      recommendation: string;
+    }>;
+    recommendations: Array<{
+      category: string;
+      priority: string;
+      action: string;
+      description: string;
+    }>;
+  } {
     // Get current error statistics
     const stats = ErrorHandler.getErrorStats();
 
@@ -2080,17 +2109,30 @@ export class ErrorUtils {
    */
   static createErrorResponse(
     message: string,
-    statusCode: number = 500,
-    details?: any,
-  ) {
-    return {
-      error: {
-        message,
-        type: "ApplicationError",
-        timestamp: new Date().toISOString(),
-        ...(details && { details }),
-      },
+    _statusCode: number = 500,
+    details?: unknown,
+  ): {
+    error: {
+      message: string;
+      type: string;
+      timestamp: string;
+      details?: unknown;
     };
+  } {
+    const errorObj: {
+      message: string;
+      type: string;
+      timestamp: string;
+      details?: unknown;
+    } = {
+      message,
+      type: "ApplicationError",
+      timestamp: new Date().toISOString(),
+    };
+    if (details) {
+      errorObj.details = details;
+    }
+    return { error: errorObj };
   }
 
   /**
@@ -2170,7 +2212,15 @@ export class ErrorUtils {
    * }
    * ```
    */
-  static extractErrorInfo(error: Error) {
+  static extractErrorInfo(error: Error): {
+    name: string;
+    message: string;
+    stack: string | undefined;
+    timestamp: string;
+    statusCode?: number;
+    isOperational?: boolean;
+    requestId?: string;
+  } {
     return {
       name: error.name,
       message: error.message,
