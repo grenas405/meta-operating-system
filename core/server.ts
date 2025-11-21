@@ -102,7 +102,7 @@ class HTTPServer {
   async start(): Promise<void> {
     // Display startup banner
     // NOTE: renderBanner is not part of ILogger interface - using ConsoleStyler directly for now
-    const { ConsoleStyler } = await import("./utils/console-styler/mod.ts");
+    const { ConsoleStyler } = await import("@pedromdominguez/genesis-trace");
     ConsoleStyler.renderBanner({
       version: this.systemInfo.version,
       buildDate: new Date().toISOString(),

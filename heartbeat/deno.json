@@ -24,6 +24,7 @@
     "lifeline": "deno run --allow-env --allow-read lifeline-demo.ts"
   },
   "imports": {
-    "@std/assert": "jsr:@std/assert@1"
+    "@std/assert": "jsr:@std/assert@1",
+    "@pedromdominguez/genesis-trace": "jsr:@pedromdominguez/genesis-trace@^1.0.5"
   }
 }

@@ -93,6 +93,50 @@ async function executeGitCommand(args: string[]): Promise<GitCommandResult> {
 }
 
 // ============================================================================
+// UNIX FALLBACK UTILITIES
+// ============================================================================
+
+/**
+ * 🔍 Check if we're in a git repository
+ *
+ * @returns {Promise<boolean>} True if in a git repository
+ */
+async function isGitRepository(): Promise<boolean> {
+  const result = await executeGitCommand(["rev-parse", "--git-dir"]);
+  return result.success;
+}
+
+/**
+ * 🕐 Generate Unix-style fallback version info
+ *
+ * When not in a git repository, generates version information using:
+ * - Current date as build date
+ * - Unix timestamp as a pseudo-hash
+ * - Fallback version string
+ *
+ * UNIX PHILOSOPHY:
+ * - Graceful degradation: Works without git
+ * - Deterministic: Uses current timestamp
+ * - Simple: Minimal dependencies
+ *
+ * @returns {GitVersionInfo} Fallback version information
+ */
+function generateUnixFallbackInfo(): GitVersionInfo {
+  const now = new Date();
+  const unixTimestamp = Math.floor(now.getTime() / 1000);
+  const pseudoHash = unixTimestamp.toString(16); // Hex representation of unix timestamp
+
+  return {
+    version: "v1.0.0-dev",
+    buildDate: now.toISOString().split("T")[0],
+    commitHash: pseudoHash.slice(-7), // Last 7 chars like git short hash
+    fullHash: pseudoHash,
+    commitDate: now,
+    isDirty: true, // Always considered dirty when not in git
+  };
+}
+
+// ============================================================================
 // GIT INFORMATION EXTRACTION
 // ============================================================================
 
@@ -261,6 +305,12 @@ async function isRepositoryDirty(): Promise<boolean> {
  * ```
  */
 async function getGitVersionInfo(): Promise<GitVersionInfo> {
+  // Check if we're in a git repository first
+  if (!await isGitRepository()) {
+    console.warn("⚠️  Not in a git repository, using Unix-style fallback");
+    return generateUnixFallbackInfo();
+  }
+
   // Execute all git queries in parallel for efficiency
   const [version, buildDate, commitHash, fullHash, isDirty] = await Promise.all(
     [
@@ -325,13 +375,20 @@ async function getGitVersionInfo(): Promise<GitVersionInfo> {
  */
 async function generateVersionFileFromGit(): Promise<boolean> {
   try {
-    console.log("📦 Generating VERSION file from git...\n");
+    // Check if we're in a git repository
+    const inGitRepo = await isGitRepository();
 
-    // Extract version information from git
+    if (inGitRepo) {
+      console.log("📦 Generating VERSION file from git...\n");
+    } else {
+      console.log("📦 Generating VERSION file (Unix fallback - no git)...\n");
+    }
+
+    // Extract version information (uses fallback automatically if not in git)
     const gitInfo = await getGitVersionInfo();
 
-    // Warn if repository is dirty
-    if (gitInfo.isDirty) {
+    // Warn if repository is dirty (only relevant when in git repo)
+    if (inGitRepo && gitInfo.isDirty) {
       console.warn("⚠️  Warning: Repository has uncommitted changes");
       console.warn(
         "   VERSION file will reflect last commit, not current state\n",
@@ -353,11 +410,15 @@ async function generateVersionFileFromGit(): Promise<boolean> {
     console.log("✅ VERSION file generated successfully:");
     console.log(`   Version:    ${gitInfo.version}`);
     console.log(`   Build Date: ${gitInfo.buildDate}`);
-    console.log(`   Git Hash:   ${gitInfo.commitHash}`);
+    console.log(`   Git Hash:   ${gitInfo.commitHash}${inGitRepo ? "" : " (unix timestamp)"}`);
     console.log(`   Full Hash:  ${gitInfo.fullHash}`);
-    console.log(
-      `   Repo State: ${gitInfo.isDirty ? "⚠️  DIRTY" : "✅ CLEAN"}\n`,
-    );
+    if (inGitRepo) {
+      console.log(
+        `   Repo State: ${gitInfo.isDirty ? "⚠️  DIRTY" : "✅ CLEAN"}\n`,
+      );
+    } else {
+      console.log(`   Source:     Unix timestamp fallback\n`);
+    }
 
     return true;
   } catch (error) {
@@ -380,11 +441,17 @@ async function generateVersionFileFromGit(): Promise<boolean> {
  */
 async function generateVersionFileFromGitExtended(): Promise<boolean> {
   try {
-    console.log("📦 Generating extended VERSION file from git...\n");
+    const inGitRepo = await isGitRepository();
+
+    if (inGitRepo) {
+      console.log("📦 Generating extended VERSION file from git...\n");
+    } else {
+      console.log("📦 Generating extended VERSION file (Unix fallback)...\n");
+    }
 
     const gitInfo = await getGitVersionInfo();
 
-    if (gitInfo.isDirty) {
+    if (inGitRepo && gitInfo.isDirty) {
       console.warn("⚠️  Warning: Repository has uncommitted changes\n");
     }
 
@@ -395,7 +462,7 @@ async function generateVersionFileFromGitExtended(): Promise<boolean> {
       `Git Hash: ${gitInfo.commitHash}`,
       `Full Hash: ${gitInfo.fullHash}`,
       `Commit Date: ${gitInfo.commitDate.toISOString()}`,
-      `Repository: ${gitInfo.isDirty ? "dirty" : "clean"}`,
+      `Repository: ${inGitRepo ? (gitInfo.isDirty ? "dirty" : "clean") : "not-git"}`,
       `Generated: ${new Date().toISOString()}`,
     ];
 
@@ -462,6 +529,8 @@ async function verifyGitRepository(): Promise<boolean> {
 export {
   // Low-level utilities
   executeGitCommand,
+  // Unix fallback utilities
+  generateUnixFallbackInfo,
   // Main functions
   generateVersionFileFromGit,
   generateVersionFileFromGitExtended,
@@ -474,6 +543,8 @@ export {
   type GitCommandResult,
   // Types
   type GitVersionInfo,
+  // Repository checks
+  isGitRepository,
   isRepositoryDirty,
   verifyGitRepository,
 };

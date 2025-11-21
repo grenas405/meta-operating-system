@@ -1,7 +1,8 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@pedromdominguez/genesis-trace@*": "1.0.5"
+    "jsr:@pedromdominguez/genesis-trace@*": "1.0.5",
+    "jsr:@pedromdominguez/genesis-trace@^1.0.5": "1.0.5"
   },
   "jsr": {
     "@pedromdominguez/genesis-trace@1.0.5": {
@@ -196,6 +197,7 @@
   },
   "workspace": {
     "dependencies": [
+      "jsr:@pedromdominguez/genesis-trace@^1.0.5",
       "jsr:@std/assert@1"
     ]
   }
