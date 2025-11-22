@@ -1,7 +1,7 @@
 /**
- * Meta Operating System - Usage Example
+ * Genesis Operating System - Usage Example
  *
- * This example demonstrates how to use the Meta OS public API
+ * This example demonstrates how to use the Genesis OS public API
  * to create custom HTTP services with routing and middleware.
  */
 
@@ -53,7 +53,7 @@ function example1SimpleRouter() {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Meta OS Example</title>
+          <title>Genesis OS Example</title>
           <style>
             body { font-family: system-ui; max-width: 800px; margin: 40px auto; padding: 20px; }
             h1 { color: #333; }
@@ -61,8 +61,8 @@ function example1SimpleRouter() {
           </style>
         </head>
         <body>
-          <h1>Meta Operating System - Example</h1>
-          <p>Welcome to the Meta OS router example!</p>
+          <h1>Genesis Operating System - Example</h1>
+          <p>Welcome to the Genesis OS router example!</p>
           <h2>Available Endpoints:</h2>
           <div class="endpoint"><strong>GET /</strong> - This page</div>
           <div class="endpoint"><strong>GET /api/hello</strong> - JSON response</div>
@@ -75,7 +75,7 @@ function example1SimpleRouter() {
 
   router.get("/api/hello", (_ctx: Context) => {
     return json({
-      message: "Hello from Meta OS!",
+      message: "Hello from Genesis OS!",
       timestamp: new Date().toISOString(),
       version: "1.0.0",
     });

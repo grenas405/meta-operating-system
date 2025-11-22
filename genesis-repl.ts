@@ -174,7 +174,7 @@ export class GenesisRepl {
 
     this.registerCommand({
       name: "man",
-      description: "Display Genesis Meta OS manual and documentation",
+      description: "Display Genesis OS manual and documentation",
       category: "system",
       handler: (args) => {
         this.showManual(args);
@@ -193,7 +193,7 @@ export class GenesisRepl {
 
     this.registerCommand({
       name: "status",
-      description: "Show Genesis Meta OS and site status",
+      description: "Show Genesis OS and site status",
       category: "system",
       handler: () => {
         this.showStatus();
@@ -202,7 +202,7 @@ export class GenesisRepl {
 
     this.registerCommand({
       name: "version",
-      description: "Display Genesis Meta OS version",
+      description: "Display Genesis OS version",
       category: "system",
       aliases: ["v"],
       handler: () => {
@@ -564,7 +564,7 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
   }
 
   /**
-   * Display Genesis Meta OS manual and documentation
+   * Display Genesis OS manual and documentation
    */
   private showManual(args: string[]): void {
     if (args.length === 0) {
@@ -582,11 +582,11 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
   private showGeneralManual(): void {
     const manual = `
 ${colors.neonCyan}${colors.bright}╔═══════════════════════════════════════════════════════════════════════╗
-║                    GENESIS META OS MANUAL                             ║
+║                       GENESIS OS MANUAL                               ║
 ╚═══════════════════════════════════════════════════════════════════════╝${colors.reset}
 
 ${colors.neonPink}${colors.bright}NAME${colors.reset}
-    ${colors.bright}genesis${colors.reset} - Deno Genesis Meta Operating System REPL
+    ${colors.bright}genesis${colors.reset} - Deno Genesis Operating System REPL
 
 ${colors.neonPink}${colors.bright}SYNOPSIS${colors.reset}
     ${colors.neonGreen}genesis${colors.reset} [command] [options]
@@ -636,7 +636,7 @@ ${colors.neonPink}${colors.bright}EXAMPLES${colors.reset}
 ${colors.neonPink}${colors.bright}SEE ALSO${colors.reset}
     man init, man new, man db, man dev, man deploy
 
-${colors.dim}Genesis Meta OS v1.0.0                                    2025-01-03${colors.reset}
+${colors.dim}Genesis OS v1.0.0                                         2025-01-03${colors.reset}
 `;
     console.log(manual);
   }

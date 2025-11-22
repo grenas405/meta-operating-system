@@ -39,7 +39,7 @@ router.use(bodyParser());
 
 // Simple JSON response
 router.get("/api/hello", (ctx: Context) => {
-  return json({ message: "Hello from Meta-OS!", requestId: ctx.state.requestId });
+  return json({ message: "Hello from Genesis OS!", requestId: ctx.state.requestId });
 });
 
 // Text response
@@ -52,9 +52,9 @@ router.get("/", () => {
   return html(`
     <!DOCTYPE html>
     <html>
-      <head><title>Meta-OS Example</title></head>
+      <head><title>Genesis OS Example</title></head>
       <body>
-        <h1>Meta-OS Server</h1>
+        <h1>Genesis OS Server</h1>
         <ul>
           <li><a href="/api/hello">JSON Hello</a></li>
           <li><a href="/api/text">Text Response</a></li>

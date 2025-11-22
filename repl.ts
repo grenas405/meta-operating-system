@@ -1,10 +1,10 @@
 /**
- * META-OS REPL - Futuristic Process Management Interface
+ * GENESIS OS REPL - Futuristic Process Management Interface
  * ========================================================
  *
  * "Where Unix Philosophy meets Cyberpunk Aesthetics"
  *
- * A revolutionary command-line interface for the Meta Operating System Kernel
+ * A revolutionary command-line interface for the Genesis Operating System Kernel
  * that combines timeless Unix principles with modern developer experience.
  *
  * Philosophy:
@@ -76,7 +76,7 @@ interface InputState {
 }
 
 // =============================================================================
-// META REPL CLASS
+// GENESIS REPL CLASS
 // =============================================================================
 
 export class MetaRepl {
@@ -531,18 +531,18 @@ export class MetaRepl {
    */
   private displayWelcome(): void {
     const banner = `
-${colors.neonCyan}╔═══════════════════════════════════════════════════════════════╗
-║                                                               ║
-║   ${colors.bright}███╗   ███╗███████╗████████╗ █████╗       ██████╗ ███████╗${colors.reset}${colors.neonCyan}   ║
-║   ${colors.bright}████╗ ████║██╔════╝╚══██╔══╝██╔══██╗     ██╔═══██╗██╔════╝${colors.reset}${colors.neonCyan}   ║
-║   ${colors.bright}██╔████╔██║█████╗     ██║   ███████║     ██║   ██║███████╗${colors.reset}${colors.neonCyan}   ║
-║   ${colors.bright}██║╚██╔╝██║██╔══╝     ██║   ██╔══██║     ██║   ██║╚════██║${colors.reset}${colors.neonCyan}   ║
-║   ${colors.bright}██║ ╚═╝ ██║███████╗   ██║   ██║  ██║     ╚██████╔╝███████║${colors.reset}${colors.neonCyan}   ║
-║   ${colors.bright}╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝      ╚═════╝ ╚══════╝${colors.reset}${colors.neonCyan}   ║
-║                                                               ║
-║            ${colors.neonPink}⚡ Process Management + System Control ⚡${colors.reset}${colors.neonCyan}            ║
-║                                                               ║
-╚═══════════════════════════════════════════════════════════════╝${colors.reset}
+${colors.neonCyan}╔═══════════════════════════════════════════════════════════════════════════════╗
+║                                                                               ║
+║   ${colors.bright} ██████╗ ███████╗███╗   ██╗███████╗███████╗██╗███████╗     ██████╗ ███████╗${colors.reset}${colors.neonCyan}   ║
+║   ${colors.bright}██╔════╝ ██╔════╝████╗  ██║██╔════╝██╔════╝██║██╔════╝    ██╔═══██╗██╔════╝${colors.reset}${colors.neonCyan}   ║
+║   ${colors.bright}██║  ███╗█████╗  ██╔██╗ ██║█████╗  ███████╗██║███████╗    ██║   ██║███████╗${colors.reset}${colors.neonCyan}   ║
+║   ${colors.bright}██║   ██║██╔══╝  ██║╚██╗██║██╔══╝  ╚════██║██║╚════██║    ██║   ██║╚════██║${colors.reset}${colors.neonCyan}   ║
+║   ${colors.bright}╚██████╔╝███████╗██║ ╚████║███████╗███████║██║███████║    ╚██████╔╝███████║${colors.reset}${colors.neonCyan}   ║
+║   ${colors.bright} ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚══════╝╚══════╝╚═╝╚══════╝     ╚═════╝ ╚══════╝${colors.reset}${colors.neonCyan}   ║
+║                                                                               ║
+║                  ${colors.neonPink}⚡ Process Management + System Control ⚡${colors.reset}${colors.neonCyan}                  ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝${colors.reset}
 
 ${colors.dim}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}
 
@@ -565,7 +565,7 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
    */
   private showHelp(): void {
     console.log(
-      `\n${colors.neonCyan}${colors.bright}═══ META-OS COMMANDS ═══${colors.reset}\n`,
+      `\n${colors.neonCyan}${colors.bright}═══ GENESIS OS COMMANDS ═══${colors.reset}\n`,
     );
 
     const categories = {
@@ -651,7 +651,7 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
 
       // Header
       output +=
-        `${colors.bgBlue}${colors.bright} META-OS PROCESS MONITOR ${colors.reset} `;
+        `${colors.bgBlue}${colors.bright} GENESIS OS PROCESS MONITOR ${colors.reset} `;
       output += `${colors.neonCyan}Updated: ${
         new Date().toLocaleTimeString()
       }${colors.reset}`;
@@ -850,7 +850,7 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
     const parts = [
       `${colors.dim}[${colors.neonCyan}${timeStr}${colors.dim}]${colors.reset}`,
       `${statusColor}${statusChar}${colors.reset}`,
-      `${colors.neonPink}meta-os${colors.reset}`,
+      `${colors.neonPink}genesis-os${colors.reset}`,
       `${colors.dim}[${colors.gold}${runningCount}${colors.dim} proc]${colors.reset}`,
       `${colors.electricBlue}❯${colors.reset}`,
     ];
@@ -870,7 +870,7 @@ ${colors.electricBlue}Type ${colors.bright}'exit'${colors.reset}${colors.electri
     const totalCount = processes.length;
 
     const statusParts = [
-      `${colors.bgBlue}${colors.bright} META-OS v${sysInfo.version} ${colors.reset}`,
+      `${colors.bgBlue}${colors.bright} GENESIS OS v${sysInfo.version} ${colors.reset}`,
       `${colors.neonCyan}⬆ ${uptimeStr}${colors.reset}`,
       `${colors.neonGreen}◉ ${runningCount}/${totalCount} proc${colors.reset}`,
       `${colors.gold}⚡ PID:${sysInfo.pid}${colors.reset}`,

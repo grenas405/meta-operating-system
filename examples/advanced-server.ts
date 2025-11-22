@@ -66,7 +66,7 @@ router.use(createHealthCheckMiddleware(
 
 router.get("/", () => {
   return json({
-    name: "Meta-OS Advanced Example",
+    name: "Genesis OS Advanced Example",
     endpoints: [
       "GET  /health - Health check",
       "GET  /metrics - Performance metrics",

@@ -110,7 +110,7 @@ class HTTPServer {
       port: this.config.port,
       author: "Pedro M.Dominguez",
       repository: "https://github.com/grenas405/meta-operating-system",
-      description: "HTTP Server for Deno Genesis Meta OS",
+      description: "HTTP Server for Deno Genesis OS",
       features: [
         "HTTP Routes",
         "Middleware Pipeline",

@@ -1,5 +1,5 @@
 /**
- * Meta-OS Kernel
+ * Genesis OS Kernel
  * Runtime orchestrator for managing Deno processes
  * Designed to run as a systemd service with elevated privileges
  * No external dependencies - uses only Deno built-in APIs
@@ -566,7 +566,7 @@ class Kernel {
       port: this.config.serverPort,
       author: "Pedro M. Dominguez",
       repository: "https://github.com/grenas405/meta-operating-system",
-      description: "Meta Operating System - Process Orchestrator",
+      description: "Genesis Operating System - Process Orchestrator",
       features: [
         "Process Management",
         "Auto-Restart",
@@ -575,7 +575,7 @@ class Kernel {
       ],
     });
 
-    this.log("Booting Meta-OS Kernel...");
+    this.log("Booting Genesis OS Kernel...");
     this.log(`Platform: ${this.systemInfo.platform}`, {
       platform: this.systemInfo.platform,
       pid: this.systemInfo.pid,

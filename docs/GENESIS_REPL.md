@@ -32,7 +32,7 @@ The **Genesis REPL** is a dedicated interactive command-line interface for the D
 
 #### System Commands
 - `help` (aliases: `h`, `?`) - Display available commands
-- `status` - Show Genesis Meta OS and site status
+- `status` - Show Genesis OS and site status
 - `version` (alias: `v`) - Display version information
 - `history` - Show command history
 - `clear` (alias: `cls`) - Clear screen
@@ -78,7 +78,7 @@ genesis ▸ exit
 
 ## Differences from Kernel REPL
 
-The Genesis REPL is **separate** from the Meta-OS kernel REPL:
+The Genesis REPL is **separate** from the Genesis OS kernel REPL:
 
 | Feature | Genesis REPL | Kernel REPL |
 |---------|--------------|-------------|

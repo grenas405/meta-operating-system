@@ -5,14 +5,14 @@
 ### Startup
 ```
 ╔═══════════════════════════════════════════════╗
-║      Meta-OS REPL Shell - Interactive Mode    ║
+║     Genesis OS REPL Shell - Interactive Mode  ║
 ╚═══════════════════════════════════════════════╝
 
 Type 'help' for available commands
 Type 'exit' to leave REPL (kernel keeps running)
 Press CTRL+C to shutdown the kernel
 
-meta-os> _
+genesis-os> _
 ```
 
 ### Input Handling
@@ -21,7 +21,7 @@ meta-os> _
 - No command history navigation
 - No auto-completion
 - No visual feedback
-- Basic prompt: `meta-os> `
+- Basic prompt: `genesis-os> `
 
 ### Commands
 - help, ps, info, kill, history, clear, eval, man, exit, shutdown
@@ -61,9 +61,9 @@ Shutdown: Press CTRL+C to shutdown the kernel
 
 ### Enhanced Prompt
 ```
- META-OS v0.1.0   ⬆ 5m 32s  ◉ 1/1 proc  ⚡ PID:12345  linux
+ GENESIS OS v0.1.0   ⬆ 5m 32s  ◉ 1/1 proc  ⚡ PID:12345  linux
 
-[23:45:12] ● meta-os [1 proc] ❯ _
+[23:45:12] ● genesis-os [1 proc] ❯ _
 ```
 
 **Features:**
@@ -78,29 +78,29 @@ Shutdown: Press CTRL+C to shutdown the kernel
 
 #### Auto-completion
 ```
-[23:45:15] ● meta-os [1 proc] ❯ he█lp
+[23:45:15] ● genesis-os [1 proc] ❯ he█lp
                                  ^^^ (ghost text)
 ```
 Press Tab → completes to `help`
 
 #### Multiple Suggestions
 ```
-[23:45:18] ● meta-os [1 proc] ❯ s█
+[23:45:18] ● genesis-os [1 proc] ❯ s█
 suggestions: status | statusbar | shutdown | show
 ```
 Press Tab repeatedly to cycle through options
 
 #### History Navigation
 ```
-[23:45:20] ● meta-os [1 proc] ❯ ps█
+[23:45:20] ● genesis-os [1 proc] ❯ ps█
                                     (press ↑)
-[23:45:20] ● meta-os [1 proc] ❯ help█
+[23:45:20] ● genesis-os [1 proc] ❯ help█
                                       (previous command)
 ```
 
 #### Cursor Movement
 ```
-[23:45:25] ● meta-os [1 proc] ❯ kil█ http-server
+[23:45:25] ● genesis-os [1 proc] ❯ kil█ http-server
                                    ^ cursor position
                                 (use ← → to move)
 ```
@@ -109,7 +109,7 @@ Press Tab repeatedly to cycle through options
 
 #### Process Monitor (Real-time Dashboard)
 ```
- META-OS PROCESS MONITOR  Updated: 23:45:30  Press 'q' to exit
+ GENESIS OS PROCESS MONITOR  Updated: 23:45:30  Press 'q' to exit
 
 System Information:
   Uptime:      5m 45s
@@ -285,7 +285,7 @@ class MetaRepl {
 
 ## Summary
 
-The futuristic REPL transforms the Meta-OS kernel interface from a basic command-line shell into a modern, feature-rich terminal experience with:
+The futuristic REPL transforms the Genesis OS kernel interface from a basic command-line shell into a modern, feature-rich terminal experience with:
 
 ✅ Real-time status display
 ✅ Smart auto-completion
@@ -296,4 +296,4 @@ The futuristic REPL transforms the Meta-OS kernel interface from a basic command
 ✅ Professional aesthetics
 ✅ Enhanced usability
 
-This brings the Meta-OS kernel interface up to the standards of modern DevOps tools like k9s, htop, and other advanced terminal UIs.
+This brings the Genesis OS kernel interface up to the standards of modern DevOps tools like k9s, htop, and other advanced terminal UIs.

@@ -1,12 +1,12 @@
 # Futuristic REPL Shell - Feature Guide
 
 ## Overview
-The Meta-OS REPL has been upgraded with a futuristic, modern interface featuring advanced input handling, real-time status display, and interactive command suggestions.
+The Genesis OS REPL has been upgraded with a futuristic, modern interface featuring advanced input handling, real-time status display, and interactive command suggestions.
 
 ## Key Features
 
 ### 1. Enhanced Visual Design
-- **Futuristic ASCII Art Banner**: Eye-catching startup banner with META-OS branding
+- **Futuristic ASCII Art Banner**: Eye-catching startup banner with GENESIS OS branding
 - **Colorful Prompt**: Dynamic prompt showing:
   - Current time `[HH:MM:SS]`
   - Process status indicator (`●` green when running, `○` gray when stopped)
@@ -129,13 +129,13 @@ deno run --allow-all kernel.ts
 ### Ghost Text Preview
 When you start typing a command:
 ```
-meta-os> h█lp
+genesis-os> h█lp
          ^^^^ (dimmed ghost text shows "elp")
 ```
 
 ### Multiple Suggestions
 ```
-meta-os> s█
+genesis-os> s█
 suggestions: status | statusbar | shutdown | show
 
 Press Tab to cycle through them
