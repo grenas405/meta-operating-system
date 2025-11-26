@@ -9,6 +9,7 @@ export { Kernel } from "./kernel.ts";
 export type {
   KernelConfig,
   ManagedProcess,
+  ProcessHealthCheck,
   SystemInfo,
 } from "./interfaces/kernel.d.ts";
 

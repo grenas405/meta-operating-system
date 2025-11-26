@@ -17,6 +17,8 @@ interface SystemInfo {
   platform: string;
 }
 
+type ProcessHealthCheck = () => Promise<boolean>;
+
 interface ManagedProcess {
   id: string;
   name: string;
@@ -29,6 +31,17 @@ interface ManagedProcess {
   status: "starting" | "running" | "stopped" | "failed";
   readyResolver?: () => void;
   readyPromise?: Promise<void>;
+  isReady?: boolean;
+  healthCheck?: ProcessHealthCheck;
+  healthCheckInterval?: number;
+  maxHealthCheckFailures?: number;
+  consecutiveHealthFailures?: number;
+  lastHealthCheckTime?: number;
+  lastHealthStatus?: "healthy" | "unhealthy";
+  healthCheckTimer?: number;
+  healthCheckInProgress?: boolean;
+  restartRequested?: boolean;
+  restartReason?: string;
 }
 
-export { KernelConfig, ManagedProcess, SystemInfo };
+export { KernelConfig, ManagedProcess, SystemInfo, type ProcessHealthCheck };

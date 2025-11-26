@@ -12,6 +12,7 @@ import {
   env,
   type KernelConfig,
   type ManagedProcess,
+  type ProcessHealthCheck,
   type SystemInfo,
 } from "./mod.ts";
 
@@ -27,6 +28,11 @@ class Kernel {
   private processes: Map<string, ManagedProcess> = new Map();
   private shutdownInProgress = false;
   private logger: ILogger;
+  private readonly defaultHealthCheckInterval = 15_000;
+  private readonly defaultHealthFailures = 3;
+  private readonly healthCheckTimeout = 2_000;
+  private readonly heartbeatPort = 3000;
+  private readonly heartbeatHostname = "127.0.0.1";
 
   constructor(
     config: Partial<KernelConfig> = {},
@@ -61,37 +67,27 @@ class Kernel {
   }
 
   /**
-   * Check if a port is already in use
+   * Check if a port is available using only Deno primitives
    */
-  private async isPortInUse(port: number): Promise<number | null> {
+  private async isPortAvailable(
+    port: number,
+    hostname = "127.0.0.1",
+  ): Promise<boolean> {
     try {
-      const command = new Deno.Command("bash", {
-        args: [
-          "-c",
-          `lsof -ti:${port} -sTCP:LISTEN 2>/dev/null || netstat -tlnp 2>/dev/null | grep :${port} | awk '{print $7}' | cut -d'/' -f1 | head -1`,
-        ],
-        stdout: "piped",
-        stderr: "piped",
-      });
-
-      const { stdout } = await command.output();
-      const decoder = new TextDecoder();
-      const output = decoder.decode(stdout).trim();
-
-      if (output) {
-        const pid = parseInt(output.split("\n")[0]);
-        if (!isNaN(pid) && pid > 0) {
-          return pid;
-        }
-      }
-      return null;
+      const listener = Deno.listen({ port, hostname });
+      listener.close();
+      return true;
     } catch (error) {
-      this.log(
-        `Error checking port ${port}: ${
+      if (error instanceof Deno.errors.AddrInUse) {
+        return false;
+      }
+
+      this.logError(
+        `Unexpected error while probing port ${port}: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
-      return null;
+      return false;
     }
   }
 
@@ -108,6 +104,10 @@ class Kernel {
       autoRestart?: boolean;
       cwd?: string;
       port?: number;
+      hostname?: string;
+      healthCheck?: ProcessHealthCheck;
+      healthCheckIntervalMs?: number;
+      maxHealthCheckFailures?: number;
     } = {},
   ): Promise<ManagedProcess> {
     if (this.processes.has(id)) {
@@ -115,45 +115,13 @@ class Kernel {
     }
 
     // Check if port is already in use (if port is specified)
-    if (options.port) {
-      const existingPid = await this.isPortInUse(options.port);
-      if (existingPid) {
-        this.log(
-          `Port ${options.port} is already in use by PID ${existingPid}`,
+    if (typeof options.port === "number") {
+      const hostname = options.hostname ?? "127.0.0.1";
+      const available = await this.isPortAvailable(options.port, hostname);
+      if (!available) {
+        throw new Error(
+          `Port ${options.port} (${hostname}) is already in use`,
         );
-        this.log(`Monitoring existing process instead of spawning new one`);
-
-        // Create a managed process entry for the existing process
-        const managedProcess: ManagedProcess = {
-          id,
-          name,
-          command: new Deno.Command(Deno.execPath(), {
-            args: ["run", "--allow-all", scriptPath, ...args],
-            env: {
-              ...Deno.env.toObject(),
-              ...options.env,
-            },
-            cwd: options.cwd,
-            stdout: "piped",
-            stderr: "piped",
-          }),
-          pid: existingPid,
-          startTime: Date.now(),
-          restartCount: 0,
-          autoRestart: options.autoRestart ?? false,
-          status: "running",
-        };
-
-        this.processes.set(id, managedProcess);
-        this.logSuccess(
-          `Monitoring existing process: ${name} (PID: ${existingPid})`,
-          { id, pid: existingPid },
-        );
-
-        // Monitor the existing process
-        this.monitorExistingProcess(managedProcess);
-
-        return managedProcess;
       }
     }
 
@@ -178,26 +146,19 @@ class Kernel {
       restartCount: 0,
       autoRestart: options.autoRestart ?? false,
       status: "starting",
+      healthCheck: options.healthCheck,
+      healthCheckInterval: options.healthCheckIntervalMs ??
+        this.defaultHealthCheckInterval,
+      maxHealthCheckFailures: options.maxHealthCheckFailures ??
+        this.defaultHealthFailures,
+      consecutiveHealthFailures: 0,
+      isReady: true,
     };
 
     this.processes.set(id, managedProcess);
 
     try {
-      const child = command.spawn();
-      managedProcess.child = child;
-      managedProcess.pid = child.pid;
-      managedProcess.status = "running";
-
-      this.logSuccess(`Process started: ${name} (PID: ${child.pid})`, {
-        id,
-        pid: child.pid,
-      });
-
-      // Monitor process output in background
-      this.monitorProcess(managedProcess);
-
-      // Monitor process exit
-      this.watchProcessExit(managedProcess);
+      this.startChildProcess(managedProcess);
     } catch (error) {
       managedProcess.status = "failed";
       this.logError(`Failed to start process: ${name}`, {
@@ -211,21 +172,60 @@ class Kernel {
   }
 
   /**
+   * Launch or relaunch a managed process
+   */
+  private startChildProcess(
+    process: ManagedProcess,
+    options: { isRestart?: boolean; reason?: string } = {},
+  ): void {
+    const child = process.command.spawn();
+    process.child = child;
+    process.pid = child.pid;
+    process.status = "running";
+    process.startTime = Date.now();
+    process.consecutiveHealthFailures = 0;
+
+    if (options.isRestart) {
+      process.restartCount++;
+      this.logSuccess(
+        `Process restarted: ${process.name} (PID: ${child.pid})`,
+        {
+          id: process.id,
+          pid: child.pid,
+          reason: options.reason,
+          restartCount: process.restartCount,
+        },
+      );
+    } else {
+      this.logSuccess(`Process started: ${process.name} (PID: ${child.pid})`, {
+        id: process.id,
+        pid: child.pid,
+      });
+    }
+
+    this.monitorProcess(process, child);
+    this.watchProcessExit(process, child);
+    this.setupHealthMonitor(process);
+  }
+
+  /**
    * Monitor process output
    */
-  private async monitorProcess(process: ManagedProcess): Promise<void> {
-    if (!process.child) return;
-
+  private monitorProcess(
+    process: ManagedProcess,
+    child: Deno.ChildProcess,
+  ): void {
     const decoder = new TextDecoder();
 
     // Monitor stdout
     (async () => {
-      if (!process.child?.stdout) return;
-      for await (const chunk of process.child.stdout) {
+      if (!child.stdout) return;
+      for await (const chunk of child.stdout) {
         const text = decoder.decode(chunk);
         // Check for ready signal
         if (text.includes("SERVER_READY") && process.readyResolver) {
           process.readyResolver();
+          process.isReady = true;
         }
 
         // Filter heartbeat monitor output - only show important messages
@@ -256,8 +256,8 @@ class Kernel {
 
     // Monitor stderr and detect address already in use
     (async () => {
-      if (!process.child?.stderr) return;
-      for await (const chunk of process.child.stderr) {
+      if (!child.stderr) return;
+      for await (const chunk of child.stderr) {
         const text = decoder.decode(chunk);
         this.logger.logError(`[${process.name}] ${text.trim()}`);
 
@@ -269,187 +269,273 @@ class Kernel {
             `Address already in use for ${process.name}, attempting to monitor existing process`,
           );
           process.status = "failed";
-          await this.handleAddressInUse(process);
         }
       }
     })();
   }
 
   /**
-   * Handle address already in use by finding and monitoring existing process
+   * Configure periodic health monitoring for a process
    */
-  private async handleAddressInUse(process: ManagedProcess): Promise<void> {
-    const port = this.config.serverPort;
-    this.log(`Searching for existing Deno process on port ${port}...`);
+  private setupHealthMonitor(process: ManagedProcess): void {
+    if (!process.healthCheck) {
+      return;
+    }
 
-    try {
-      // Find the process using the port
-      const command = new Deno.Command("bash", {
-        args: [
-          "-c",
-          `lsof -ti:${port} -sTCP:LISTEN || netstat -tlnp 2>/dev/null | grep :${port} | awk '{print $7}' | cut -d'/' -f1`,
-        ],
-        stdout: "piped",
-        stderr: "piped",
-      });
+    if (process.healthCheckTimer) {
+      return; // already monitoring
+    }
 
-      const { stdout } = await command.output();
-      const decoder = new TextDecoder();
-      const output = decoder.decode(stdout).trim();
+    const interval = process.healthCheckInterval ??
+      this.defaultHealthCheckInterval;
 
-      if (output) {
-        const pid = parseInt(output.split("\n")[0]);
-        if (!isNaN(pid)) {
-          this.logSuccess(
-            `Found existing process with PID ${pid} on port ${port}`,
-          );
-
-          // Update process info to monitor the existing process
-          process.pid = pid;
-          process.status = "running";
-          process.child = undefined; // We don't control this process
-          process.autoRestart = false; // Disable auto-restart to prevent address conflicts
-
-          // Monitor the existing process
-          await this.monitorExistingProcess(process);
-          return;
-        }
+    const timerId = setInterval(() => {
+      if (this.shutdownInProgress) return;
+      if (process.status !== "running") return;
+      if (
+        process.readyPromise && process.restartCount === 0 &&
+        process.isReady === false
+      ) {
+        return;
       }
+      if (process.healthCheckInProgress) return;
+      this.runHealthCheck(process).catch((error) => {
+        this.logError(`Health monitor error for ${process.name}`, {
+          id: process.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
+    }, interval);
 
-      this.logError(`Could not find process using port ${port}`);
-    } catch (error) {
-      this.logError(
-        `Error finding existing process: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
+    process.healthCheckTimer = timerId as number;
+  }
+
+  /**
+   * Stop the health monitor for a process
+   */
+  private clearHealthMonitor(process: ManagedProcess): void {
+    if (process.healthCheckTimer !== undefined) {
+      clearInterval(process.healthCheckTimer);
+      process.healthCheckTimer = undefined;
     }
   }
 
   /**
-   * Monitor an existing process that we don't control
+   * Execute a single health check probe
    */
-  private async monitorExistingProcess(process: ManagedProcess): Promise<void> {
-    if (!process.pid) return;
+  private async runHealthCheck(process: ManagedProcess): Promise<void> {
+    if (!process.healthCheck) {
+      return;
+    }
 
-    this.log(
-      `Monitoring existing process: ${process.name} (PID: ${process.pid})`,
-    );
+    process.healthCheckInProgress = true;
+    try {
+      const healthy = await process.healthCheck();
+      process.lastHealthCheckTime = Date.now();
+      process.lastHealthStatus = healthy ? "healthy" : "unhealthy";
 
-    // Poll the process to check if it's still alive
-    const checkInterval = 5000; // Check every 5 seconds
-
-    const intervalId = setInterval(async () => {
-      if (!process.pid || this.shutdownInProgress) {
-        clearInterval(intervalId);
+      if (healthy) {
+        if ((process.consecutiveHealthFailures ?? 0) > 0) {
+          this.logSuccess(
+            `Health restored for ${process.name} after consecutive failures`,
+            { id: process.id },
+          );
+        }
+        process.consecutiveHealthFailures = 0;
         return;
       }
 
-      try {
-        // Check if process is still running by checking if we can read /proc/{pid}
-        const procPath = `/proc/${process.pid}`;
-        await Deno.stat(procPath);
-        // Process still exists
-      } catch (error) {
-        // Process no longer exists
-        this.logError(
-          `Monitored process ${process.name} (PID: ${process.pid}) has exited`,
-        );
-        process.status = "stopped";
-        clearInterval(intervalId);
+      process.consecutiveHealthFailures =
+        (process.consecutiveHealthFailures ?? 0) + 1;
 
-        // Auto-restart if enabled
-        if (process.autoRestart && !this.shutdownInProgress) {
-          this.log(
-            `Restarting ${process.name} after monitored process exit...`,
-          );
-          await new Promise((resolve) => setTimeout(resolve, 2000));
+      const failures = process.consecutiveHealthFailures;
+      this.log(
+        `Health check failed for ${process.name} (${failures} consecutive)`,
+        { id: process.id },
+      );
 
-          // Spawn a new process
-          try {
-            const child = process.command.spawn();
-            process.child = child;
-            process.pid = child.pid;
-            process.status = "running";
-            process.startTime = Date.now();
-            process.restartCount++;
-
-            this.logSuccess(
-              `Process restarted: ${process.name} (PID: ${child.pid})`,
-            );
-            this.monitorProcess(process);
-            this.watchProcessExit(process);
-          } catch (restartError) {
-            this.logError(`Failed to restart process: ${process.name}`, {
-              error: restartError instanceof Error
-                ? restartError.message
-                : String(restartError),
-            });
-          }
-        }
+      if (
+        failures >=
+          (process.maxHealthCheckFailures ?? this.defaultHealthFailures)
+      ) {
+        await this.restartProcess(process, "health_check_failed");
+        process.consecutiveHealthFailures = 0;
       }
-    }, checkInterval);
+    } catch (error) {
+      process.consecutiveHealthFailures =
+        (process.consecutiveHealthFailures ?? 0) + 1;
+      this.logError(`Health check error for ${process.name}`, {
+        id: process.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      if (
+        process.consecutiveHealthFailures >=
+          (process.maxHealthCheckFailures ?? this.defaultHealthFailures)
+      ) {
+        await this.restartProcess(process, "health_check_error");
+        process.consecutiveHealthFailures = 0;
+      }
+    } finally {
+      process.healthCheckInProgress = false;
+    }
+  }
+
+  /**
+   * Request a managed restart for a process
+   */
+  private async restartProcess(
+    process: ManagedProcess,
+    reason: string,
+  ): Promise<void> {
+    if (!process.autoRestart) {
+      this.logWarning(
+        `Auto-restart disabled for ${process.name}, cannot self-heal`,
+        { id: process.id, reason },
+      );
+      return;
+    }
+
+    if (!process.child) {
+      this.log(
+        `Process ${process.name} is not running; starting new instance (reason: ${reason})`,
+        { id: process.id },
+      );
+      try {
+        this.startChildProcess(process, { isRestart: true, reason });
+      } catch (error) {
+        this.logError(`Failed to start ${process.name}`, {
+          id: process.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        process.status = "failed";
+      }
+      return;
+    }
+
+    if (process.restartRequested) {
+      this.log(
+        `Restart already requested for ${process.name}, skipping duplicate`,
+        { id: process.id, reason },
+      );
+      return;
+    }
+
+    this.log(
+      `Requesting restart for ${process.name} due to ${reason}`,
+      { id: process.id },
+    );
+
+    process.restartRequested = true;
+    process.restartReason = reason;
+
+    try {
+      process.child.kill("SIGTERM");
+    } catch (error) {
+      this.logError(`Failed to send SIGTERM to ${process.name}`, {
+        id: process.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      process.restartRequested = false;
+      process.restartReason = undefined;
+    }
+  }
+
+  /**
+   * Helper to perform HTTP-based health checks with a timeout
+   */
+  private async checkHttpEndpoint(url: string): Promise<boolean> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.healthCheckTimeout);
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      return response.ok;
+    } catch (_) {
+      return false;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   /**
    * Watch for process exit and handle restart
    */
-  private async watchProcessExit(process: ManagedProcess): Promise<void> {
-    if (!process.child) return;
-
+  private async watchProcessExit(
+    process: ManagedProcess,
+    child: Deno.ChildProcess,
+  ): Promise<void> {
     try {
-      const status = await process.child.status;
+      const status = await child.status;
+
+      if (process.child === child) {
+        process.child = undefined;
+        process.pid = undefined;
+      }
 
       if (this.shutdownInProgress) {
         process.status = "stopped";
+        this.clearHealthMonitor(process);
         return;
       }
 
-      if (status.success) {
+      const restartRequested = process.restartRequested ?? false;
+      const restartReason = process.restartReason ??
+        (status.success ? "process_exit" : `exit_code_${status.code ?? -1}`);
+
+      if (status.success && !restartRequested) {
         this.log(`Process exited successfully: ${process.name}`, {
           id: process.id,
           code: status.code,
         });
         process.status = "stopped";
-      } else {
+        this.clearHealthMonitor(process);
+        return;
+      }
+
+      if (!process.autoRestart) {
+        if (!restartRequested) {
+          this.logError(`Process crashed: ${process.name}`, {
+            id: process.id,
+            code: status.code,
+          });
+        } else {
+          this.log(
+            `Restart requested for ${process.name} but autoRestart is disabled`,
+            {
+              id: process.id,
+              reason: restartReason,
+            },
+          );
+        }
+        process.status = restartRequested ? "stopped" : "failed";
+        this.clearHealthMonitor(process);
+        return;
+      }
+
+      if (!restartRequested) {
         this.logError(`Process crashed: ${process.name}`, {
           id: process.id,
           code: status.code,
         });
+        await this.delay(2000);
+      } else {
+        this.log(
+          `Process ${process.name} restart requested (reason: ${restartReason})`,
+          { id: process.id },
+        );
+      }
+
+      try {
+        this.startChildProcess(process, {
+          isRestart: true,
+          reason: restartReason,
+        });
+      } catch (error) {
+        this.logError(`Failed to restart process: ${process.name}`, {
+          id: process.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
         process.status = "failed";
-
-        // Auto-restart if enabled
-        if (process.autoRestart) {
-          process.restartCount++;
-          this.log(
-            `Restarting process: ${process.name} (attempt ${process.restartCount})`,
-            {
-              id: process.id,
-            },
-          );
-
-          // Wait a bit before restarting
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-
-          // Restart the process
-          const child = process.command.spawn();
-          process.child = child;
-          process.pid = child.pid;
-          process.status = "running";
-          process.startTime = Date.now();
-
-          this.logSuccess(
-            `Process restarted: ${process.name} (PID: ${child.pid})`,
-            {
-              id: process.id,
-              pid: child.pid,
-            },
-          );
-
-          // Continue monitoring
-          this.monitorProcess(process);
-          this.watchProcessExit(process);
-        }
       }
     } catch (error) {
       this.logError(`Error monitoring process: ${process.name}`, {
@@ -457,6 +543,9 @@ class Kernel {
         error: error instanceof Error ? error.message : String(error),
       });
       process.status = "failed";
+    } finally {
+      process.restartRequested = false;
+      process.restartReason = undefined;
     }
   }
 
@@ -486,6 +575,7 @@ class Kernel {
       process.child.kill(signal);
       await process.child.status;
       process.status = "stopped";
+      this.clearHealthMonitor(process);
       this.logSuccess(`Process killed: ${process.name}`, { id });
     } catch (error) {
       this.logError(`Failed to kill process: ${process.name}`, {
@@ -518,6 +608,13 @@ class Kernel {
   }
 
   /**
+   * Simple delay helper
+   */
+  private async delay(ms: number): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
    * Logging utilities
    */
   private log(message: string, metadata?: Record<string, unknown>): void {
@@ -531,6 +628,14 @@ class Kernel {
   ): void {
     const timestamp = new Date().toISOString();
     this.logger.logSuccess(`[${timestamp}] [KERNEL] ${message}`, metadata);
+  }
+
+  private logWarning(
+    message: string,
+    metadata?: Record<string, unknown>,
+  ): void {
+    const timestamp = new Date().toISOString();
+    this.logger.logWarning(`[${timestamp}] [KERNEL] ${message}`, metadata);
   }
 
   private logError(message: string, metadata?: Record<string, unknown>): void {
@@ -593,6 +698,11 @@ class Kernel {
       import.meta.url,
     ).pathname;
 
+    const heartbeatHealthCheck = () =>
+      this.checkHttpEndpoint(
+        `http://${this.heartbeatHostname}:${this.heartbeatPort}/health`,
+      );
+
     await this.spawnProcess(
       "heartbeat",
       "Heartbeat Monitor",
@@ -603,6 +713,10 @@ class Kernel {
           DEBUG: String(this.config.debug),
         },
         autoRestart: true,
+        port: this.heartbeatPort,
+        hostname: this.heartbeatHostname,
+        healthCheck: heartbeatHealthCheck,
+        healthCheckIntervalMs: 10_000,
       },
     );
 
@@ -611,7 +725,9 @@ class Kernel {
     // =========================================================================
     // PROCESS 2: HTTP Configuration Server
     // =========================================================================
-    this.log("Starting HTTP configuration server on port 9000...");
+    this.log(
+      `Starting HTTP configuration server on port ${this.config.serverPort}...`,
+    );
     const serverScriptPath = new URL(
       this.config.serverScriptPath,
       import.meta.url,
@@ -622,6 +738,11 @@ class Kernel {
     const serverReadyPromise = new Promise<void>((resolve) => {
       serverReadyResolver = resolve;
     });
+
+    const serverHealthCheck = () =>
+      this.checkHttpEndpoint(
+        `http://${this.config.serverHostname}:${this.config.serverPort}/health`,
+      );
 
     const httpProcess = await this.spawnProcess(
       "http-server",
@@ -636,17 +757,29 @@ class Kernel {
         },
         autoRestart: true,
         port: this.config.serverPort,
+        hostname: this.config.serverHostname,
+        healthCheck: serverHealthCheck,
+        healthCheckIntervalMs: 15_000,
+        maxHealthCheckFailures: 3,
       },
     );
 
     // Attach the ready promise to the process
+    httpProcess.isReady = false;
     httpProcess.readyPromise = serverReadyPromise;
     httpProcess.readyResolver = serverReadyResolver!;
+    serverReadyPromise.then(() => {
+      httpProcess.isReady = true;
+    }).catch(() => {
+      httpProcess.isReady = false;
+    });
 
     // Wait for HTTP server to be ready
     this.log("Waiting for HTTP server to be ready...");
     await serverReadyPromise;
-    this.logSuccess("HTTP server is ready on port 9000");
+    this.logSuccess(
+      `HTTP server is ready on port ${this.config.serverPort}`,
+    );
 
     this.logSuccess("Kernel boot complete");
 
